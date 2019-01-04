@@ -1,5 +1,5 @@
 # AdditionalPylons
-Starcraft 2 AI Bot written in python using the python-sc2 API.   Uses intelligence gathered to build a response with units to counter the known enemy units. 
+Starcraft 2 Bot written in python using the python-sc2 API.   Uses intelligence gathered to build a response with units to counter the known enemy units. 
 
 Currently competes on the [Starcraft 2 AI ladder](http://sc2ai.net/)
 
