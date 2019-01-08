@@ -85,17 +85,16 @@ class UnitCounter:
 		self.counterTable = {
 			#zerg counters
 			'SpineCrawler': [
-				[['Stalker', 2]],
-				[['Zealot', 3]],
+				[['Immortal', 0.5]],
+				[['Stalker', 1]],
+				[['Zealot', 1]],
 			],
 			'SporeCrawler': [
-				[['Immortal', 1]],
-				[['Stalker', 2]],
-				[['Zealot', 3]],
+				[['Zealot', 1]],
 			],			
 			'Overlord': [
 				[['Phoenix', 0.25]],
-#				[['Stalker', 0.25]]
+				[['Stalker', 0.01]]
 				],
 			'Baneling': [
 				[['HighTemplar', 1]],
@@ -103,57 +102,57 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Zergling': [
-				[['HighTemplar', 1],  ['Zealot', 0.5]],
-#				[['Disruptor', 0.15], ['Colossus', 0.15], ['Zealot', 0.25]],
+				[['HighTemplar', 0.5],  ['Zealot', 0.5]],				
 				[['Zealot', 0.5]],
 				],
 			'Hydralisk': [
-				[['Colossus', 0.25], ['Sentry', 0.15], ['Carrier', 0.25]],
-				[['Colossus', 0.25], ['Sentry', 0.15]],				
-				[['Immortal', 1], ['Sentry', 0.15]],				
-				[['Stalker', 1], ['Sentry', 0.15]],
+				[['Colossus', 0.25], ['Carrier', 0.25], ['Zealot', 0.5]],
+				[['Colossus', 0.25],['Zealot', 0.5]],				
+				[['Stalker', 1],['Zealot', 0.5]],
 				],
 			'Mutalisk': [
 				[['Carrier', 0.25], ['Phoenix', 0.75], ['HighTemplar', 0.5]],
 				[['Phoenix', 1]],
+				[['Stalker', 1]],
 				],
-			'Ultralisk': [
-				[['Carrier', 0.25], ['Immortal', 0.5]],
-				[['VoidRay', 1], ['Immortal', 1]],
+			'Ultralisk': [				
+				[['VoidRay', 1], ['Immortal', 1],['Archon', 1]],
 				[['Immortal', 2]],
 				[['Stalker', 2], ['Zealot', 2]],
 				],
 			'Roach': [
-				[['Carrier', 0.25], ['Immortal', 0.5], ['Sentry', 0.25]],
-				[['Immortal', 0.5], ['Sentry', 0.25]],
-				[['Stalker', 1.5], ['Sentry', 0.25]],
+				[['Carrier', 0.25], ['Immortal', 0.5], ['Zealot', 0.5]],
+				[['Immortal', 0.5], ['Zealot', 0.5]],
+				[['Stalker', 1.5], ['Zealot', 0.5]],
 				],
 			'Infestor': [
 				[['HighTemplar', 1]],
-				[['Stalker', 2]],
+				[['Stalker', 1],['Zealot', 0.5]],
 				],
 			'Queen': [
-				[['Zealot', 2]],
+				[['Zealot', 1]],
 				],
 			'Overseer': [
 				[['Phoenix', 0.5], ['Stalker', 0.5]],
 				],
 			'Ravager': [
-				[['Immortal', 0.5]],
+				[['Immortal', 0.5],['Zealot', 0.5]],
 				],
 			'Lurker': [
 				[['Observer', 0.25], ['Disruptor', 0.25]],
+				[['Observer', 0.25], ['Immortal', 0.5]],
 				],
 			'Corruptor': [
 				[['VoidRay', 1], ['Phoenix', 0.5], ['Tempest', 0.1]],
+				[['Stalker', 1]],
 				],
 			'Viper': [
-				[['Phoenix', 1]],
+				[['HighTemplar', 1]],
 				[['Stalker', 1]],
 				],
 			'BroodLord': [
 				[['Tempest', 1]],
-				[['Stalker', 3]],
+				[['Stalker', 3],['VoidRay', 1]],
 				],
 			
 			#protoss counters
@@ -163,16 +162,14 @@ class UnitCounter:
 				[['Zealot', 1]],
 				],
 			'Stalker': [
-				[['Immortal', 0.75], ['Sentry', 0.1]],
-				[['Stalker', 1], ['Sentry', 0.25]],
-				[['Zealot', 2]],
+				[['Immortal', 0.75], ['Zealot', 1],['Stalker', 1]]
+				[['Zealot', 1],['Stalker', 1]],
 				],
 			'Adept': [
-				[['Stalker', 1], ['Sentry', 0.1]],
+				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
 			'Sentry': [
-				[['Colossus', 0.25]],
 				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
@@ -194,8 +191,8 @@ class UnitCounter:
 				[['Stalker', 3]],
 				],
 			'Carrier': [
-				[['Tempest', 1.5], ['Phoenix', 2], ['Sentry', 1]],
-				[['Stalker', 2], ['VoidRay', 2], ['Sentry', 1]],
+				[['Tempest', 1.5], ['VoidRay', 2],['Phoenix', 1]],
+				[['Stalker', 2], ['VoidRay', 2],['Phoenix', 1]],
 				[['Stalker', 3]],
 				],
 			'Phoenix': [
@@ -204,28 +201,30 @@ class UnitCounter:
 				],
 			'Colossus': [
 				[['Carrier', 0.25], ['Immortal', 0.5], ['Phoenix', 0.5]],
-				[['Tempest', 1.5]],
-				[['Immortal', 2]],
-				[['Stalker', 3]],
-				[['Zealot', 5]],
+				[['VoidRay', 1.5]],
+				[['Immortal', 1],['Zealot', 2]],
+				[['Stalker', 2],['Zealot', 2]],
 				],
 			'Tempest': [
 				[['VoidRay', 2], ['Phoenix', 1]],
 				[['Stalker', 3]],
 				],
 			'HighTemplar': [
+                                [['HighTemplar', 1],['Zealot', 0.5]],
 				[['Colossus', 0.5], ['Zealot', 0.5]],
 				[['Stalker', 1], ['Zealot', 2]],
 				],
 			'Disruptor': [
+                                [['VoidRay', 1]]
 				[['Immortal', 1]],
 				[['Stalker', 2]],
-				[['Zealot', 3]],
+				[['Zealot', 1],['Stalker', 2]],
 				],
 			'DarkTemplar': [
-				[['Observer', 0.5], ['Zealot', 0.5]],
+				[['Observer', 0.5], ['Stalker', 0.5]],
 				],
 			'Archon': [
+                                [['VoidRay', 1]],
 				[['Immortal', 2]],
 				[['Stalker', 3]],
 				[['Zealot', 4]],
@@ -235,12 +234,13 @@ class UnitCounter:
 				[['Observer', 0.5], ['Stalker', 0.5]],
 				],
 			'PhotonCannon': [
-				[['Immortal', 1], ['Sentry', 0.15]],
-				[['Stalker', 2], ['Sentry', 0.15]],
+				[['Immortal', 1]],
+				[['Stalker', 2]],
 				[['Zealot', 3]],
 				],
 			'Mothership': [
 				[['VoidRay', 5]],
+                                [['Stalker', 3]],
 				],
 			
 			#terran counters
@@ -256,7 +256,7 @@ class UnitCounter:
 			'Reaper': [
 				[['Tempest', 1]],
 				[['VoidRay', 0.5]],
-				[['Stalker', 0.5]],
+				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
 			'Marauder': [
@@ -267,34 +267,33 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Ghost':  [
-				[['Stalker', 0.5], ['Observer', 0.25]],
+				[['Phoenix', 1], ['Observer', 0.25]],
+				[['Stalker', 1], ['Observer', 0.25]],
 				],
 			'Hellion': [
-				[['Tempest', 1]],
+				[['Carrier', 1]],
 				[['VoidRay', 1]],
 				[['Stalker', 1.5], ['Zealot', 1]],
 				],
 			'WidowMine': [
-				[['Tempest', 1]],
-				[['VoidRay', 1]],
-				[['Stalker', 0.25]],
+				[['Tempest', 1], ['Observer', 0.25]],
+				[['VoidRay', 1], ['Observer', 0.25]],
+				[['Stalker', 0.5], ['Observer', 0.25]],
 				],
 			'Cyclone': [
-				[['Tempest', 1]],
+				[['Immortal', 1]],
 				[['VoidRay', 1]],
 				[['Stalker', 0.5], ['Zealot', 0.5]],
 				],
 			'SiegeTank': [
-				[['Tempest', 1], ['Immortal', 1]],
 				[['VoidRay', 1], ['Immortal', 1]],
-				[['Immortal', 1], ['Zealot', 0.5], ['Sentry', 0.25]],
+				[['Immortal', 1], ['Zealot', 0.5]],
 				[['Zealot', 2]],
 				],
 			'Thor': [
-				[['Tempest', 1]],
 				[['VoidRay', 1]],
-				[['Immortal', 1.5], ['Zealot', 0.5]],
-				[['Stalker', 2], ['Zealot', 0.5]],
+				[['Immortal', 1], ['Zealot', 2]],
+				[['Stalker', 1], ['Zealot', 2]],
 				],
 			'Viking': [
 				[['Tempest', 1]],
@@ -303,6 +302,7 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Medivac': [
+				[['HighTemplar', 1],['Stalker', 1]],
 				[['Tempest', 1], ['Phoenix', 1]],
 				[['Stalker', 1]],
 				],
@@ -312,9 +312,9 @@ class UnitCounter:
 				[['Stalker', 2]],
 				],
 			'Raven': [
-				[['Tempest', 1], ['Phoenix', 1]],
-				[['VoidRay', 1]],
-				[['Stalker', 2]],
+				[['HighTemplar', 1],['Phoenix', 1]],
+				[['HighTemplar', 1], ['Phoenix', 1]],
+				[['Stalker', 2], ['Phoenix', 1]],
 				],
 			'Banshee': [
 				[['Phoenix', 1], ['Observer', 0.5]],
@@ -323,6 +323,7 @@ class UnitCounter:
 			'Battlecruiser': [
 				[['Tempest', 1.5], ['Phoenix', 0.5]],
 				[['VoidRay', 2.5], ['Phoenix', 0.5]],
+				[['Stalker', 4]]
 				],
 			'VikingFighter': [
 				[['Tempest', 1]],
@@ -337,7 +338,8 @@ class UnitCounter:
 				[['Stalker', 2]],
 				],
 			'MissileTurret': [
-				[['Immortal', 1]],
+				[['Immortal', 0.1]],
+				[['Stalker', 1],['Zealot', 2]],
 				],
 
 		}	
