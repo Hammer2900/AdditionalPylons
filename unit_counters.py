@@ -162,7 +162,7 @@ class UnitCounter:
 				[['Zealot', 1]],
 				],
 			'Stalker': [
-				[['Immortal', 0.75], ['Zealot', 1],['Stalker', 1]]
+				[['Immortal', 0.75], ['Zealot', 1],['Stalker', 1]],
 				[['Zealot', 1],['Stalker', 1]],
 				],
 			'Adept': [
@@ -210,12 +210,12 @@ class UnitCounter:
 				[['Stalker', 3]],
 				],
 			'HighTemplar': [
-                                [['HighTemplar', 1],['Zealot', 0.5]],
+				[['HighTemplar', 1],['Zealot', 0.5]],
 				[['Colossus', 0.5], ['Zealot', 0.5]],
 				[['Stalker', 1], ['Zealot', 2]],
 				],
 			'Disruptor': [
-                                [['VoidRay', 1]]
+				[['VoidRay', 1]],
 				[['Immortal', 1]],
 				[['Stalker', 2]],
 				[['Zealot', 1],['Stalker', 2]],
@@ -224,7 +224,7 @@ class UnitCounter:
 				[['Observer', 0.5], ['Stalker', 0.5]],
 				],
 			'Archon': [
-                                [['VoidRay', 1]],
+				[['VoidRay', 1]],
 				[['Immortal', 2]],
 				[['Stalker', 3]],
 				[['Zealot', 4]],
@@ -240,9 +240,9 @@ class UnitCounter:
 				],
 			'Mothership': [
 				[['VoidRay', 5]],
-                                [['Stalker', 3]],
-				],
-			
+				[['Stalker', 3]],
+			],
+
 			#terran counters
 			'CommandCenter':[
 				[['Phoenix', 0.2], ['Zealot', 1]],
