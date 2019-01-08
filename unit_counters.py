@@ -210,12 +210,12 @@ class UnitCounter:
 				[['Stalker', 3]],
 				],
 			'HighTemplar': [
-                [['HighTemplar', 1],['Zealot', 0.5]],
+                                [['HighTemplar', 1],['Zealot', 0.5]],
 				[['Colossus', 0.5], ['Zealot', 0.5]],
 				[['Stalker', 1], ['Zealot', 2]],
 				],
 			'Disruptor': [
-                [['VoidRay', 1]]
+                                [['VoidRay', 1]]
 				[['Immortal', 1]],
 				[['Stalker', 2]],
 				[['Zealot', 1],['Stalker', 2]],
@@ -224,7 +224,7 @@ class UnitCounter:
 				[['Observer', 0.5], ['Stalker', 0.5]],
 				],
 			'Archon': [
-                [['VoidRay', 1]],
+                                [['VoidRay', 1]],
 				[['Immortal', 2]],
 				[['Stalker', 3]],
 				[['Zealot', 4]],
@@ -240,7 +240,7 @@ class UnitCounter:
 				],
 			'Mothership': [
 				[['VoidRay', 5]],
-                [['Stalker', 3]],
+                                [['Stalker', 3]],
 				],
 			
 			#terran counters
@@ -267,7 +267,7 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Ghost':  [
-                [['Phoenix', 1], ['Observer', 0.25]],
+				[['Phoenix', 1], ['Observer', 0.25]],
 				[['Stalker', 1], ['Observer', 0.25]],
 				],
 			'Hellion': [
@@ -302,7 +302,7 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Medivac': [
-                [['HighTemplar', 1],['Stalker', 1]],
+				[['HighTemplar', 1],['Stalker', 1]],
 				[['Tempest', 1], ['Phoenix', 1]],
 				[['Stalker', 1]],
 				],
@@ -312,7 +312,7 @@ class UnitCounter:
 				[['Stalker', 2]],
 				],
 			'Raven': [
-                [['HighTemplar', 1],['Phoenix', 1]],
+				[['HighTemplar', 1],['Phoenix', 1]],
 				[['HighTemplar', 1], ['Phoenix', 1]],
 				[['Stalker', 2], ['Phoenix', 1]],
 				],
@@ -323,7 +323,7 @@ class UnitCounter:
 			'Battlecruiser': [
 				[['Tempest', 1.5], ['Phoenix', 0.5]],
 				[['VoidRay', 2.5], ['Phoenix', 0.5]],
-                [['Stalker', 4]]
+				[['Stalker', 4]]
 				],
 			'VikingFighter': [
 				[['Tempest', 1]],
@@ -339,7 +339,7 @@ class UnitCounter:
 				],
 			'MissileTurret': [
 				[['Immortal', 0.1]],
-                [['Stalker', 1],['Zealot', 2]],
+				[['Stalker', 1],['Zealot', 2]],
 				],
 
 		}	
