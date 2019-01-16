@@ -30,7 +30,7 @@ from trainingdata import TrainingData as trainingData
 
 
 _debug = False
-_version = 'v0.812'
+_version = 'v0.814'
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 
 class AdditionalPylons(sc2.BotAI):
@@ -234,8 +234,13 @@ class AdditionalPylons(sc2.BotAI):
 
 	async def on_unit_created(self, unit):
 		self.unitList.load_object(unit)
+
+			
+	async def on_building_construction_started(self, unit):
 		if unit.name == 'Nexus':
 			self.getDefensivePoint()
+
+	
 
 	async def control_nexuses(self):
 		#check to see if we need workers.
@@ -268,7 +273,7 @@ class AdditionalPylons(sc2.BotAI):
 			
 			#check if we are the starting nexus
 			#await self.protect_minerals(nexus)
-			if self.queuedGates:
+			if self.queuedGates and self._strat_manager.stage1complete:
 				#if nexus.distance_to(self.start_location) > 5:
 					#if not starting nexus, make sure we have a pylon near us.
 				if not self.units(PYLON).closer_than(6, nexus).exists and nexus.distance_to(self.start_location) > 5:
@@ -324,30 +329,40 @@ class AdditionalPylons(sc2.BotAI):
 				#check if research is being done and buff it if so.
 				#cyberneticcore
 				for core in self.units(CYBERNETICSCORE):
-					if not core.noqueue:
+					if not core.noqueue and core.orders[0].progress < 0.75:
 						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, core))
 						break
 				#forge
 				for forge in self.units(FORGE):
-					if not forge.noqueue:
+					if not forge.noqueue and forge.orders[0].progress < 0.75:
 						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, forge))
 						break	
 				#twilightcouncil
 				for tw in self.units(TWILIGHTCOUNCIL):
-					if not tw.noqueue:
+					if not tw.noqueue and tw.orders[0].progress < 0.65:					
 						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, tw))
 						break
 				#roboticsbay
 				for bay in self.units(ROBOTICSBAY):
-					if not bay.noqueue:
+					if not bay.noqueue and bay.orders[0].progress < 0.65:					
 						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, bay))
-						break	
-
-				if not nexus.noqueue and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus, cached_abilities_of_unit=abilities):
+						break
+					
+				#a,b,c = [1,2,3]
+				nexus_boost = False
+				if not nexus.noqueue:
+					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAIN_PROBE and nexus.orders[0].progress < 0.25:
+						nexus_boost = True
+					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAINMOTHERSHIP_MOTHERSHIP and nexus.orders[0].progress < 0.75:
+						nexus_boost = True
+					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAINMOTHERSHIPCORE_MOTHERSHIPCORE and nexus.orders[0].progress < 0.75:
+						nexus_boost = True						
+				
+				if not nexus.noqueue and nexus_boost and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus, cached_abilities_of_unit=abilities):
 					self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus))
 				else:
 					for building in self.units.structure:
-						if not building.noqueue and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building, cached_abilities_of_unit=abilities):
+						if not building.noqueue and building.orders[0].progress < 0.35 and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building, cached_abilities_of_unit=abilities):
 							self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building))
 							break
 

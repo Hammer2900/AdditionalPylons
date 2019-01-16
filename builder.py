@@ -310,24 +310,28 @@ class Builder:
 		return False
 	
 	def canBuildStargate(self):
-		if self.pylon4Loc and self.game.units(CYBERNETICSCORE).ready.exists and self.game.units(STARGATE).amount < self.stargates:
+		#if self.pylon4Loc and self.game.units(CYBERNETICSCORE).ready.exists and self.game.units(STARGATE).amount < self.stargates:
+		if self.game.units(CYBERNETICSCORE).ready.exists and self.game.units(STARGATE).amount < self.stargates:
 			if self.game.units(NEXUS).exists and self.game.can_afford(STARGATE) and not self.game.already_pending(STARGATE):
 				return True
 		return False
 	
 	def canBuildGateway(self):
-		if self.pylon3Loc and (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount) < self.gateways:
+		#if self.pylon3Loc and (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount) < self.gateways:
+		if (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount) < self.gateways:
 			if self.game.units(PYLON).exists and self.game.units(NEXUS).exists and self.game.can_afford(GATEWAY) and not self.game.already_pending(GATEWAY):
 				return True
 	
 	def canBuildRobo(self):
-		if self.pylon1Loc and self.game.units(CYBERNETICSCORE).ready.exists and len(self.game.units(ROBOTICSFACILITY)) < self.roboticsfacility:
+		#if self.pylon1Loc and self.game.units(CYBERNETICSCORE).ready.exists and len(self.game.units(ROBOTICSFACILITY)) < self.roboticsfacility:
+		if self.game.units(CYBERNETICSCORE).ready.exists and len(self.game.units(ROBOTICSFACILITY)) < self.roboticsfacility:
 			if self.game.units(NEXUS).exists and self.game.can_afford(ROBOTICSFACILITY) and not self.game.already_pending(ROBOTICSFACILITY):
 				return True
 		return False
 	
 	def canBuildCore(self):
-		if self.pylon3Loc and self.game.units(GATEWAY).ready.exists and len(self.game.units(CYBERNETICSCORE)) < self.cores:
+		#if self.pylon3Loc and self.game.units(GATEWAY).ready.exists and len(self.game.units(CYBERNETICSCORE)) < self.cores:
+		if self.game.units(GATEWAY).ready.exists and len(self.game.units(CYBERNETICSCORE)) < self.cores:
 			if self.game.units(NEXUS).exists and self.game.can_afford(CYBERNETICSCORE) and not self.game.already_pending(CYBERNETICSCORE):
 				return True
 			

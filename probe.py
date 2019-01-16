@@ -153,9 +153,22 @@ class Probe:
 	def scoutList(self):
 		#if self.game.canEscape(self.unit):
 			#1b priority is to save our butts if we can because we have to stop to attack.
+		#check if we are being asked to build something, if so just leave.
+		#mine until it's 20 seconds of game time.
+		if self.game.time < 10:
+			self.label = 'Temp Mining'
+			self.last_action = 'miner'
+			return #building			
+		
+		if 'pylon' in str(self.unit.orders).lower():
+			self.label = 'Building Pylon'
+			self.last_action = 'build'
+			return #building
+
+
 		if self.game.searchEnemies(self):
 			self.label = 'Search'
-			return #looking for targets		
+			return #looking for targets
 
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:			

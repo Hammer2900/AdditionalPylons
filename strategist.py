@@ -121,7 +121,8 @@ class Strategist:
 		if not self.stage1complete and self.game.minerals > 1000:
 			print ('bypassing stage 1')
 			self.stage1complete = True
-			self.build.can_build_pylons = True
+			self.build.can_build_assimilators = True				
+			self.build.can_build_pylons = True	
 	
 	
 		
@@ -159,9 +160,10 @@ class Strategist:
 				#turn off all queues.
 				self.save_expand()
 			else:
+				self.build.cores = 1
 				self.saving = False
-				if self.build.roboticsfacility == 0:
-					self.build.roboticsfacility = 1
+				#if self.build.roboticsfacility == 0:
+				#	self.build.roboticsfacility = 1
 				
 				self.build_queue()
 				self.train_queue()
@@ -486,79 +488,84 @@ class Strategist:
 			self.build.can_build_pylons = True
 			self.stage1complete = True		
 	
+
 	async def setup_twobase_defense(self):
-		#this opener will build cannons for defense at the natural.
-		if not self.build.pylon3_built:
-			self.build.build_pylon3 = True
-		#always have to build a gateway first.
-		self.build.forges = 1
-		#after we have a gateway, expand to the natural.
-		if not self.game.under_attack and self.game.units(FORGE).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
-			if len(self.game.units(PROBE)) > 0:
-				await self.game.expand_now()
 		#build the pylon that the cannons will be placed near.
-		if not self.game.under_attack and not self.pylon1 and self.game.can_afford(PYLON) and self.game.units(NEXUS).amount >= 2:
-			await self.game.build(PYLON, near=self.pylon1Pos)
-		
+		if not self.game.under_attack and not self.pylon1 and self.game.can_afford(PYLON):
+			await self.game.build(PYLON, near=self.pylon1Pos)		
 		if not self.pylon1 and self.build.check_pylon_loc(self.pylon1Pos, searchrange=3):
 			self.pylon1 = True
 			
-		#build photon cannons  and self.game.units(GATEWAY).amount > 0
-		if self.game.units(FORGE).ready.exists and self.game.units(NEXUS).amount >= 2 and self.game.can_afford(PHOTONCANNON) and self.game.units(PHOTONCANNON).amount < 6:
-			if self.build.check_pylon_loc(self.pylon1Pos, searchrange=3):
-				await self.game.build(PHOTONCANNON, near=self.pylon1Pos)
-
-		#build a gateway after cannons
-		if self.game.units(PHOTONCANNON).amount > 5 and self.game.can_afford(GATEWAY) and self.game.units(GATEWAY).amount == 0:
-			self.build.gateways = 1
-
-		#build pylon 1
-		if self.game.units(GATEWAY).amount > 0 and not self.build.pylon1_built:
-			self.build.build_pylon1 = True		
+		#build a forge at that pylon.
+		self.build.forges = 1
 		
-		#build pylon 4
-		if self.game.units(GATEWAY).amount > 0 and not self.build.pylon4_built:
-			self.build.build_pylon4 = True
-			
+		#build a nexus at the expansion.
+		if not self.game.under_attack and self.game.units(FORGE).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
+			if len(self.game.units(PROBE)) > 0:
+				await self.game.expand_now()		
+
+		#build a gateway after nexus
+		if self.game.units(NEXUS).amount >= 2 and self.game.can_afford(GATEWAY) and self.game.units(GATEWAY).amount == 0:
+			self.build.gateways = 1	
+		
+		#build cannons at the original pylon.
+		if self.game.units(FORGE).ready.exists and self.game.units(GATEWAY).amount >= 1 and self.game.can_afford(PHOTONCANNON) and self.game.units(PHOTONCANNON).amount < 4:
+			if self.build.check_pylon_loc(self.pylon1Pos, searchrange=3):
+				await self.game.build(PHOTONCANNON, near=self.pylon1Pos)		
+
+		#if cannons exists, build 2 assims.
+		if self.game.units(PHOTONCANNON).amount >= 4 and self.game.units(GATEWAY).exists and self.game.units(ASSIMILATOR).amount < 2:
+			self.build.can_build_assimilators = True
+		else:
+			self.build.can_build_assimilators = False		
+		
 		#build our next production building.
-		if self.build.pylon4_built and self.startBuildingCount >= 1 and self.allAllowedQueued:
+		if self.startBuildingCount >= 1:
 			self.buildBuilding(1)
 		
-		#build the 3rd production building.
-		if self.startBuildingCount >= 2 and self.allAllowedQueued:
-			self.buildBuilding(2)	
-
-		if self.startBuildingCount >= 3 and self.allAllowedQueued:
-			self.buildBuilding(3)		
-
-		if self.startBuildingCount >= 4 and not self.build.pylon2_built:
-			self.build.build_pylon2 = True
+		#build a pylon in the main base.
+		if self.startBuildingCount >= 2 and not self.build.pylon1_built:
+			self.build.build_pylon1 = True		
 			
-
+		#build the 3rd production building.
+		if self.startBuildingCount >= 2 and self.allAllowedQueued:		
+			self.buildBuilding(2)
+			
+		#build a 2nd pylon in the main base.
+		if self.startBuildingCount >= 3 and not self.build.pylon4_built:
+			self.build.build_pylon4 = True				
 		
-		#build shield batteries if a core exists and all cannons exist.
-		if self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 0:
+		#build some shields.
+		if self.build.pylon4_built and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 0 and self.startBuildingCount >= 3:
 			#build shield 1.
 			await self.build.build_shield_battery(self.r2battery1Pos)
 
-		if self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 1:
-			#build shield 1.
-			await self.build.build_shield_battery(self.r2battery2Pos)
+		#build some shields.
+		if self.build.pylon4_built and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 1 and self.startBuildingCount >= 3:
+			#build shield 2.
+			await self.build.build_shield_battery(self.r2battery1Pos)
+						
 			
-		if self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 2:
-			#build shield 1.
-			await self.build.build_shield_battery(self.r2battery3Pos)
+		#build the 4th production building.
+		if self.startBuildingCount >= 3 and self.allAllowedQueued:
+			self.buildBuilding(3)
 			
-			
+		#build the last base pylon.
+		if self.startBuildingCount >= 4 and not self.build.pylon3_built:
+			self.build.build_pylon3 = True			
+		
 		#just in case
 		if self.startBuildingCount >= 4:
 			self.build.cores = 1
 		
-		if self.startBuildingCount >= 4 and self.game.units(SHIELDBATTERY).amount > 2:
+		#go to the main phase
+		if self.startBuildingCount >= 4 and self.game.units(SHIELDBATTERY).amount >= 2:
 			self.build.can_build_pylons = True
+			self.build.can_build_assimilators = True
 			self.stage1complete = True
 
-	
+		
+
 
 #################
 #Queue Decisions#
@@ -821,8 +828,9 @@ class Strategist:
 		self.game._client.debug_text_3d('P9', self.build.pylon9Loc.position)			
 		
 		#show defensive position.
-		self.game._client.debug_sphere_out(self.game.turn3d(self.game.defensive_pos.position), 1, Point3((132, 0, 66))) #purple
-		self.game._client.debug_text_3d('DP', self.game.turn3d(self.game.defensive_pos.position))
+		if self.game.defensive_pos:
+			self.game._client.debug_sphere_out(self.game.turn3d(self.game.defensive_pos.position), 1, Point3((132, 0, 66))) #purple
+			self.game._client.debug_text_3d('DP', self.game.turn3d(self.game.defensive_pos.position))
 		
 		
 		#show main ramp.
@@ -1086,9 +1094,9 @@ class Strategist:
 			
 		elif self.start_build_order[num] == 'RoboticsFacility':
 			self.build.roboticsfacility = self.countBuildings(num, 'RoboticsFacility')
-		
+	
 		elif self.start_build_order[num] == 'CyberneticsCore':
-			self.build.can_build_assimilators = True
+			#self.build.can_build_assimilators = True
 			self.build.cores = 1
 
 	def rotate(self, origin, point, angle):
