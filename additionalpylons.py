@@ -23,7 +23,6 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 #our own classes
 from unit_list import UnitList as unitList
 from building_list import BuildingList as buildingList
-from scientist import Scientist as researchControl
 from builder import Builder as buildControl
 from trainer import Trainer as trainControl
 from strategist import Strategist as stratControl
@@ -37,7 +36,6 @@ _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 class AdditionalPylons(sc2.BotAI):
 	def __init__(self):
 		self.opp_id = self.findOppId()
-		#self._science_manager = researchControl()
 		self._build_manager = buildControl(self)
 		self._train_manager = trainControl()
 		self._strat_manager = stratControl(self)
