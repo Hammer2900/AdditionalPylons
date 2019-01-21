@@ -84,7 +84,7 @@ class Builder:
 			return
 
 				
-		await self.upgrade_gateways()
+		#await self.upgrade_gateways()
 		
 		#build pylons.
 		if self.canBuildPylon() and await self.build_pylons():
@@ -443,14 +443,7 @@ class Builder:
 
 	async def build_stargate(self):
 		#build them near pylon 4
-		goto = None
-		if self.check_pylon_loc(self.pylon4Loc):
-			#place the stargate from pos4 towards 8.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon4Loc.position).position.towards(self.pylon8Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-		
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -463,13 +456,7 @@ class Builder:
 		return False
 
 	async def build_roboticsfacility(self):
-		goto = None
-		if self.check_pylon_loc(self.pylon1Loc, searchrange=3):
-			#place past pylon 1 from nexus.
-			goto = self.game.start_location.position.towards(self.pylon1Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
+		goto = self.buildingPlacement(self.pylon1Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -481,17 +468,12 @@ class Builder:
 					return True			
 		return False
 
+
+
 	async def build_gateway(self):
-		#check that pylon1 location exists, if not, make goto = random pylon nearestt.
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			#place the stargate from pos3 towards 9.
-			goto = self.game.start_location.position.towards(self.pylon3Loc.position, 9)	
-			#goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-			
+		#get position.
+		goto = self.buildingPlacement(self.pylon3Loc)
+		#place it
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -503,14 +485,8 @@ class Builder:
 					return True					
 
 	async def build_cyberneticscore(self):
-		#place it near pylon2.
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			if self.game.units(NEXUS).exists:
-				nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-				goto = self.game.units(PYLON).closest_to(nexus)
+		#place it near pylon3.
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -523,14 +499,7 @@ class Builder:
 
 	async def build_forge(self):
 		#place it near pylon2
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			#place the stargate from pos3 towards 9.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-			
+		goto = self.buildingPlacement(self.pylon3Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -542,14 +511,7 @@ class Builder:
 					return True
 
 	async def build_fleetbeacon(self):
-		goto = None
-		if self.check_pylon_loc(self.pylon4Loc):
-			#place the stargate from pos4 towards 8.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon4Loc.position).position.towards(self.pylon8Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-			
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -561,13 +523,7 @@ class Builder:
 					return True			
 			
 	async def build_twilightcouncil(self):
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			#place the stargate from pos3 towards 9.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
+		goto = self.buildingPlacement(self.pylon3Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -579,14 +535,7 @@ class Builder:
 					return True		
 
 	async def build_roboticsbay(self):
-		goto = None
-		if self.check_pylon_loc(self.pylon1Loc):
-			#place past pylon 1 from nexus.
-			goto = self.game.start_location.position.towards(self.pylon1Loc.position, 9)	
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-			
+		goto = self.buildingPlacement(self.pylon1Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -599,13 +548,7 @@ class Builder:
 
 	async def build_templararchive(self):
 		#place it near pylon2.
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			#place the stargate from pos3 towards 9.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -618,14 +561,7 @@ class Builder:
 
 	async def build_darkshrine(self):
 		#place it near pylon2.
-		goto = None
-		if self.check_pylon_loc(self.pylon3Loc):
-			#place the stargate from pos3 towards 9.
-			goto = self.game._strat_manager.midpoint(self.pylon1Loc.position, self.pylon3Loc.position).position.towards(self.pylon9Loc.position, 9)
-		else:
-			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
-			goto = self.game.units(PYLON).closest_to(nexus)
-
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -636,7 +572,21 @@ class Builder:
 					self.game.combinedActions.append(worker.build(DARKSHRINE, placement.position))
 					return True						
 
+###########
+#Utilities#
+###########
+
+	def buildingPlacement(self, pref_pylon):
+		goto = None
+		if self.check_pylon_loc(pref_pylon):
+			#place the stargate from pos3 towards 9.
+			goto = pref_pylon.position.towards(self.game.start_location.position, -9)
 			
+		else:
+			nexus = self.game.units(NEXUS).closest_to(self.game.start_location)
+			goto = self.game.units(PYLON).closest_to(nexus).position.towards(nexus, -9)
+		return goto
+
 #################
 #Maintain Pylons#
 #################
@@ -698,19 +648,6 @@ class Builder:
 #######################
 #unorganized functions#
 #######################
-
-
-	async def upgrade_gateways(self):
-		if self.game._science_manager._warpgate_researched:
-			for gateway in self.game.units(GATEWAY).ready.noqueue:
-				abilities = await self.game.get_available_abilities(gateway)
-				if AbilityId.MORPH_WARPGATE in abilities:
-					if _print_building:
-						print ('Upgrading to Warpgate')
-					self.game.combinedActions.append(gateway(AbilityId.MORPH_WARPGATE))
-
-		
-
 		
 		
 	async def build_shield_battery(self, nearPos):

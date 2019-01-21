@@ -58,7 +58,7 @@ class Colossus:
 		self.game = game
 		self.unit = unit
 		self.bonus_range = 0
-		if self.game._science_manager._extended_lance_researched:
+		if self.game.buildingList.extendedLanceAvail:
 			self.bonus_range = 2
 			
 		self.runList()

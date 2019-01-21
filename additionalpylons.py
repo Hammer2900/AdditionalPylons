@@ -9,7 +9,7 @@ from sc2.unit import Unit
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 import random
-from math import sqrt
+from math import sqrt, sin, cos
 from operator import itemgetter
 from examples.protoss.cannon_rush import CannonRushBot
 from examples.worker_rush import WorkerRushBot
@@ -22,6 +22,7 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 
 #our own classes
 from unit_list import UnitList as unitList
+from building_list import BuildingList as buildingList
 from scientist import Scientist as researchControl
 from builder import Builder as buildControl
 from trainer import Trainer as trainControl
@@ -30,18 +31,19 @@ from trainingdata import TrainingData as trainingData
 
 
 _debug = False
-_version = 'v0.814'
+_version = 'v0.820'
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 
 class AdditionalPylons(sc2.BotAI):
 	def __init__(self):
 		self.opp_id = self.findOppId()
-		self._science_manager = researchControl()
+		#self._science_manager = researchControl()
 		self._build_manager = buildControl(self)
 		self._train_manager = trainControl()
 		self._strat_manager = stratControl(self)
 		self._training_data = trainingData()
 		self.unitList = unitList()
+		self.buildingList = buildingList()
 		self._max_workers = 60
 		self._defense_distance = 10
 		self._next_status_gap = 30
@@ -82,11 +84,21 @@ class AdditionalPylons(sc2.BotAI):
 		self.intro_value = None
 		self.intro_said = False
 		self.opp_unit_history = None
+		self.last_iter = -1
+		self.unit_moves = {} #tracks if the unit moved since last frame.
+		self.unit_positions = {} # tracks the last positions of the units, updates every frame.
 		
-	async def on_step(self, iteration):	
+	async def on_step(self, iteration):
+		#realtime=True fix
+		if self.last_iter == iteration:
+			return
+		self.last_iter = iteration		
+		
+		
 		self.combinedActions = []
 		#cache enemies for future calls.
 		self.cache_enemies()
+		self.check_movements()
 		
 		#put all effect positions to be dodged into a list.
 		self.dodge_positions = []
@@ -109,7 +121,7 @@ class AdditionalPylons(sc2.BotAI):
 			ht1 = self.units(UnitTypeId.HIGHTEMPLAR).idle.ready.random
 			ht2 = next((ht for ht in self.units(UnitTypeId.HIGHTEMPLAR).idle.ready if ht.tag != ht1.tag), None)
 			if ht2:
-				print ('trying morph')
+
 				command = raw_pb.ActionRawUnitCommand(
 					ability_id=AbilityId.MORPH_ARCHON.value,
 					unit_tags=[ht1.tag, ht2.tag],
@@ -131,7 +143,7 @@ class AdditionalPylons(sc2.BotAI):
 		#first step stuff, move to function soon.
 		if iteration == 0:
 			#get the map name.
-			self.map_name = self.game_info._proto.map_name
+			self.map_name = "{}-{}-{}".format(self.game_info._proto.map_name, self.game_info.player_start_location.x, self.game_info.player_start_location.y)
 			#get map width and height:
 			#self._game_info.pathing_grid.width
 			if not self.opp_id:
@@ -151,7 +163,7 @@ class AdditionalPylons(sc2.BotAI):
 			self.match_id = time.strftime("%y%m%d%H%M", time.gmtime())
 			#find out which strat we want to use.
 			self._strat_manager.strat_id = self._training_data.findStrat(self.opp_id, self.enemy_race, self.map_name)
-			#self._strat_manager.strat_id = 4
+			#self._strat_manager.strat_id = 5
 			#print ('using strat:', self._strat_manager.strat_id)
 			#save this as a victory in case the opponent crashes or leaves before we are able to log it.
 			#get length of training data.
@@ -186,7 +198,7 @@ class AdditionalPylons(sc2.BotAI):
 		
 		if self.time > self._last_economic_update:
 			self.expPos = self._get_next_expansion()
-			await self.control_nexuses()
+			self.checkAttack()
 			await self.build_economy()
 			self._last_economic_update = self.time + self._economic_update_gap
 			#check if warpgates are available.
@@ -194,20 +206,16 @@ class AdditionalPylons(sc2.BotAI):
 					
 		self.can_spend = True
 		###strategist###
-		await self._strat_manager.strat_control(self, self._science_manager, self._build_manager, self._train_manager)
+		await self._strat_manager.strat_control(self, self._build_manager, self._train_manager)
+	
+		###run independent buildings###
+		await self.buildingList.make_decisions(self)
 
-		####train###
-		if self.can_spend:
-			await self._train_manager.train_all(self)
 		###build#####
 		if self.can_spend:
 			await self._build_manager.build_any(self)
-		###research###
-		if self.can_spend:
-			self._science_manager.research_any(self)
 
 		###run all units###
-
 		self.unitList.make_decisions(self)
 		
 		#cancel buildings that are being attacked and are low on health.
@@ -234,137 +242,24 @@ class AdditionalPylons(sc2.BotAI):
 
 	async def on_unit_created(self, unit):
 		self.unitList.load_object(unit)
+		
+	async def on_building_construction_complete(self, unit):
+		self.buildingList.load_object(unit)
 
 			
 	async def on_building_construction_started(self, unit):
 		if unit.name == 'Nexus':
 			self.getDefensivePoint()
+		#detect nexus on start
+		if self.last_iter < 3:
+			self.buildingList.load_object(unit)
 
-	
-
-	async def control_nexuses(self):
-		#check to see if we need workers.
-		#workers_needed = (len(self.units(NEXUS).ready) * 16) - len(self.workers) + 1
-		#await self.protect_ramp()
-		workers_needed = 0
-		for nexus in self.units(NEXUS):
-			workers_needed += nexus.ideal_harvesters - nexus.assigned_harvesters
-		
-		enemiesNear = False
-		
-		for nexus in self.units(NEXUS):
-			#check if we are under attack.
-			if self.cached_enemies.closer_than(30, nexus).amount > 0:
-				enemiesNear = True
-				
-				
-			#if cheese is detected, build cannons at the mineral lines.
-			if self.reaper_cheese and self.units(FORGE).ready.exists and nexus.distance_to(self.start_location) < 5:
-				if self.can_afford(PHOTONCANNON) and not self.already_pending(PHOTONCANNON):
-					#put a cannon on p3 and p4.
-					if self._build_manager.pylon3_built and self._build_manager.check_pylon_loc(self._build_manager.pylon3Loc, searchrange=3) and self.units(PHOTONCANNON).closer_than(3, self._build_manager.pylon3Loc).amount == 0:
-						pylon = self.units(PYLON).closer_than(3, self._build_manager.pylon3Loc).random
-						await self.build(PHOTONCANNON, near=pylon)
-
-					if self._build_manager.pylon4_built and self._build_manager.check_pylon_loc(self._build_manager.pylon4Loc, searchrange=3) and self.units(PHOTONCANNON).closer_than(3, self._build_manager.pylon4Loc).amount == 0:
-						pylon = self.units(PYLON).closer_than(3, self._build_manager.pylon4Loc).random
-						await self.build(PHOTONCANNON, near=pylon)				
-					
 			
-			#check if we are the starting nexus
-			#await self.protect_minerals(nexus)
-			if self.queuedGates and self._strat_manager.stage1complete:
-				#if nexus.distance_to(self.start_location) > 5:
-					#if not starting nexus, make sure we have a pylon near us.
-				if not self.units(PYLON).closer_than(6, nexus).exists and nexus.distance_to(self.start_location) > 5:
-					#if there is no pylon near us, put one in front of us.
-					if self.can_afford(PYLON) and not self.already_pending(PYLON):
-						mf = self.state.mineral_field.closer_than(15, nexus)
-						if len(mf) > 0:
-							center_pos = Point2((sum([item.position.x for item in mf]) / len(mf), \
-												sum([item.position.y for item in mf]) / len(mf)))
-							goto = nexus.position.towards(center_pos, -1.5)
-							await self.build(PYLON, near=goto)
-							return True
-				#find cannons near us, build 1 if none exist.
-				else:
-					if not self.units(PHOTONCANNON).closer_than(12, nexus).exists and self.units(PYLON).closer_than(6, nexus).ready.exists and self.units(FORGE).ready.exists:
-						if self.can_afford(PHOTONCANNON) and not self.already_pending(PHOTONCANNON):
-							pylon = self.units(PYLON).closer_than(6, nexus).ready.random
-							await self.build(PHOTONCANNON, near=pylon)
-			#trigger defense if under attack.
-			if enemiesNear:
-				self.under_attack = True
-			else:
-				self.under_attack = False
-							
-			#count the number of assims near the nexus that are still working and add 3 workers for each.
-			extra_workers = 0
-			if self.units(ASSIMILATOR).ready.closer_than(10, nexus).filter(lambda x: x.has_vespene):
-				extra_workers = self.units(ASSIMILATOR).ready.closer_than(10, nexus).filter(lambda x: x.has_vespene).amount * 2
-
-			total_workers = nexus.ideal_harvesters + extra_workers # - nexus.assigned_harvesters
-			ineed_workers = False
-			if self.units(PROBE).closer_than(20, nexus).amount < total_workers:
-				ineed_workers = True
-				
-			#print (total_workers, ineed_workers, self.units(PROBE).closer_than(20, nexus).amount)
-			
-			if ineed_workers and len(self.workers) < self._max_workers and nexus.noqueue:
-				if self.rush_detected and self.units(GATEWAY).exists:
-					pass   #don't build probes.
-				else:	
-					if self.can_afford(PROBE) and self.supply_left > 0:
-						self.combinedActions.append(nexus.train(PROBE))
-			elif nexus.noqueue and len(self.workers) < self._max_workers:
-				#build a worker for another station if all queued up.
-				if workers_needed > 0 and self._strat_manager.allAllowedQueued:
-					if self.can_afford(PROBE) and self.supply_left > 0:
-						self.combinedActions.append(nexus.train(PROBE))					
-		
-
-			#abilities = await self.get_available_abilities(nexus)
-			abilities = self.allAbilities.get(nexus.tag)
-			if AbilityId.EFFECT_CHRONOBOOSTENERGYCOST in abilities:
-				#check if research is being done and buff it if so.
-				#cyberneticcore
-				for core in self.units(CYBERNETICSCORE):
-					if not core.noqueue and core.orders[0].progress < 0.75:
-						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, core))
-						break
-				#forge
-				for forge in self.units(FORGE):
-					if not forge.noqueue and forge.orders[0].progress < 0.75:
-						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, forge))
-						break	
-				#twilightcouncil
-				for tw in self.units(TWILIGHTCOUNCIL):
-					if not tw.noqueue and tw.orders[0].progress < 0.65:					
-						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, tw))
-						break
-				#roboticsbay
-				for bay in self.units(ROBOTICSBAY):
-					if not bay.noqueue and bay.orders[0].progress < 0.65:					
-						self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, bay))
-						break
-					
-				#a,b,c = [1,2,3]
-				nexus_boost = False
-				if not nexus.noqueue:
-					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAIN_PROBE and nexus.orders[0].progress < 0.25:
-						nexus_boost = True
-					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAINMOTHERSHIP_MOTHERSHIP and nexus.orders[0].progress < 0.75:
-						nexus_boost = True
-					if nexus.orders[0].ability.id == AbilityId.NEXUSTRAINMOTHERSHIPCORE_MOTHERSHIPCORE and nexus.orders[0].progress < 0.75:
-						nexus_boost = True						
-				
-				if not nexus.noqueue and nexus_boost and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus, cached_abilities_of_unit=abilities):
-					self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, nexus))
-				else:
-					for building in self.units.structure:
-						if not building.noqueue and building.orders[0].progress < 0.35 and await self.can_cast(nexus, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building, cached_abilities_of_unit=abilities):
-							self.combinedActions.append(nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building))
-							break
+	def checkAttack(self):
+		if self.buildingList.underAttack:
+			self.under_attack = True
+		else:
+			self.under_attack = False
 
 
 ############
@@ -377,9 +272,9 @@ class AdditionalPylons(sc2.BotAI):
 		if targetEnemy:
 			if unit_obj.checkNewAction('move', targetEnemy.position[0], targetEnemy.position[1]):
 				if not unit_obj.unit.is_flying and unit_obj.unit.ground_range < 2:
-					self.combinedActions.append(unit_obj.unit.attack(targetEnemy.position))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(targetEnemy)))
 				else:
-					self.combinedActions.append(unit_obj.unit.attack(targetEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(targetEnemy)))
 			if unit_obj.unit.is_selected or _debug:
 				unit_obj.last_target = Point3((targetEnemy.position3d.x, targetEnemy.position3d.y, (targetEnemy.position3d.z + 1)))
 				self._client.debug_line_out(self.unitDebugPos(unit_obj.unit), self.p3AddZ(targetEnemy.position3d), color=Point3((219, 4, 4)))
@@ -396,10 +291,11 @@ class AdditionalPylons(sc2.BotAI):
 		
 		unit_obj.last_target = Point3((searchPos.position.x, searchPos.position.y, self.getHeight(searchPos.position)))
 		return True
-		
+
+
 	def moveToEnemies(self, unit_obj):
 		if not self.cached_enemies:
-			return False
+			return False  # no enemies to move to
 		
 		if not self.base_searched:
 			startPos = random.choice(self.enemy_start_locations)
@@ -412,7 +308,7 @@ class AdditionalPylons(sc2.BotAI):
 				closestEnemy = self.cached_enemies.not_structure.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
 				return True
 			else:
 				return False
@@ -423,9 +319,11 @@ class AdditionalPylons(sc2.BotAI):
 			#find enemy units that aren't structures first.
 			if self.cached_enemies.not_structure.not_flying.exclude_type(_exclude_list).exists:
 				closestEnemy = self.cached_enemies.not_structure.not_flying.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
-				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
-				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+				leadTarget = self.leadTarget(closestEnemy)
+		
+				unit_obj.last_target = Point3((leadTarget.position.x, leadTarget.position.y, (closestEnemy.position3d.z + 1)))
+				if unit_obj.checkNewAction('move', leadTarget.position.x, leadTarget.position.y):
+					self.combinedActions.append(unit_obj.unit.attack(leadTarget.position))
 				return True
 			#move to buildings, go to pylon first if they exist.
 			if self.cached_enemies.of_type([PYLON]).exists:
@@ -433,13 +331,14 @@ class AdditionalPylons(sc2.BotAI):
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
 					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
-				return True			
+				return True
 			#move anything not flying
 			if self.cached_enemies.not_flying.exclude_type(_exclude_list).exists:
 				closestEnemy = self.cached_enemies.not_flying.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
-				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
-				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+				leadTarget = self.leadTarget(closestEnemy)
+				unit_obj.last_target = Point3((leadTarget.position.x, leadTarget.position.y, (closestEnemy.position3d.z + 1)))
+				if unit_obj.checkNewAction('move', leadTarget.position.x, leadTarget.position.y):
+					self.combinedActions.append(unit_obj.unit.attack(leadTarget))
 				return True
 		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground:
 			# can only attack air units.
@@ -448,7 +347,7 @@ class AdditionalPylons(sc2.BotAI):
 				closestEnemy = self.cached_enemies.not_structure.flying.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
 				return True				
 			
 			#attack anything
@@ -456,14 +355,14 @@ class AdditionalPylons(sc2.BotAI):
 				closestEnemy = self.cached_enemies.flying.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
 				return True		
 		else:
 			if self.cached_enemies.not_structure.exclude_type(_exclude_list).exists:
 				closestEnemy = self.cached_enemies.not_structure.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
 				return True
 			#now pylons
 			if self.cached_enemies.of_type([PYLON]).exists:
@@ -477,15 +376,16 @@ class AdditionalPylons(sc2.BotAI):
 				closestEnemy = self.cached_enemies.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
-					self.combinedActions.append(unit_obj.unit.attack(closestEnemy))
+					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
 				return True
 			
 		return False
 
+
 	def defend(self, unit_obj):
 		#clear out destructables around the base.
 		for nexus in self.units(NEXUS):
-			items = self.state.destructables.closer_than(35, nexus)
+			items = self.state.destructables.closer_than(15, nexus)
 			if items:
 				item = items.closest_to(nexus)
 				if item.name == 'CollapsibleTerranTowerDiagonal' or item.name == 'CollapsibleRockTowerDiagonal':
@@ -654,6 +554,28 @@ class AdditionalPylons(sc2.BotAI):
 #####################
 #micro utlities code#
 #####################
+
+
+	def leadTarget(self, enemy):
+		#get the point that is enemy speed in distance ahead of enemy, if the enemy is moving.
+		#print ('moving', str(enemy.is_moving), enemy.position, enemy.facing, enemy.movement_speed)
+		#self._client.debug_text_3d(str(enemy.facing), enemy.position3d)
+		if self.unit_moves.get(enemy.tag):
+			leadTarget = self.towardsDirection(enemy.position, enemy.facing, enemy.movement_speed)
+			if _debug:
+				self._client.debug_sphere_out(Point3((leadTarget.position.x, leadTarget.position.y, enemy.position3d.z + 1)), 1, Point3((66, 69, 244))) 
+			return leadTarget
+			
+			#enemy.movement_speed
+		else:
+			#not moving, just return the current position
+			return enemy.position
+		
+		
+
+	def towardsDirection(self, p, direction, distance):
+		#finds the point in front of unit that is distance ahead of it.
+		return p.position + Point2((cos(direction), sin(direction))) * distance
 
 	def findBestMoveTarget(self, unit_obj):
 		enemyThreats = unit_obj.closestEnemies
@@ -1036,7 +958,9 @@ class AdditionalPylons(sc2.BotAI):
 
 	def inDangerSimple(self, unit_obj):
 		#get the stats of the enemies around us.
-		[enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS] = self.getEnemyStats(unit_obj)
+#		[enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS] = self.getEnemyStats(unit_obj)
+		[enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS] = self.getEnemyCenteredStats(unit_obj)
+
 		if not closestEnemy:
 			return False, None #never gonna die.
 		
@@ -1065,31 +989,6 @@ class AdditionalPylons(sc2.BotAI):
 			return True, closestEnemy		
 		return False, closestEnemy
 
-	def inDangerSimpleOld(self, unit_obj):
-		#get the stats of the enemies around us.
-		[enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS] = self.getEnemyStats(unit_obj)
-		if not closestEnemy:
-			return False, None #never gonna die.
-		
-		if unit_obj.unit.is_flying and enemyDPStoAir == 0:
-			#print ('no air dps detected', enemyDPStoAir)
-			return False, closestEnemy #never gonna die
-		if not unit_obj.unit.is_flying and enemyDPStoGround == 0 and unit_obj.unit.name != 'Colossus':
-			#print ('something wrong')
-			return False, closestEnemy #never gonna die
-		#get the stats of our nearest friendlies.
-		[friendDPStoGround, friendDPStoAir, friendAirHealth, friendGroundHealth, friendTotalDPS] = self.unitList.friendlyFighters(unit_obj.unit)
-		###if there is an enemy on the ground but no grounddps, then we can't damage the enemy and need to leave.
-		if enemyGroundHealth > 0 and friendDPStoGround == 0 and enemyGroundtoAirDPS > 0:
-			return True, closestEnemy
-		if enemyAirHealth > 0 and friendDPStoAir == 0 and enemyAirtoGroundDPS > 0:
-			return True, closestEnemy
-		
-		
-		
-		
-
-		return False, closestEnemy
 
 
 	def findSimpleRetreatPoint(self, unit, enemy):
@@ -1224,6 +1123,58 @@ class AdditionalPylons(sc2.BotAI):
 			return args.OpponentId
 		return None
 	
+
+	def getEnemyCenteredStats(self, unit_obj, enemy_range=10):
+		#find all the enemy units that are near us.
+		enemyThreatsClose = unit_obj.closestEnemies.closer_than(enemy_range, unit_obj.unit).filter(lambda x: x.can_attack_air or x.can_attack_ground)
+
+		enemyGroundtoAirDPS = 0
+		enemyAirtoGroundDPS = 0
+		enemyGroundtoGroundDPS = 0
+		enemyAirtoAirDPS = 0
+
+		enemyDPStoGround = 0
+		enemyDPStoAir = 0
+		enemyAirHealth = 0
+		enemyGroundHealth = 0
+		enemyTotalDPS = 0
+		closestEnemy = None
+		if enemyThreatsClose:
+			for enemy in enemyThreatsClose:
+				if enemy.can_attack_ground or enemy.can_attack_air:
+					if enemy.is_flying:
+						enemyAirHealth += enemy.health + enemy.shield
+						if unit_obj.unit.is_flying:
+							enemyAirtoAirDPS += enemy.air_dps
+						else:
+							enemyAirtoGroundDPS += enemy.ground_dps
+					else:
+						enemyGroundHealth += enemy.health + enemy.shield
+						if unit_obj.unit.is_flying:
+							enemyGroundtoAirDPS += enemy.air_dps
+						else:
+							enemyGroundtoGroundDPS = enemy.ground_dps
+						
+				enemyDPStoGround += enemy.ground_dps
+				enemyDPStoAir += enemy.air_dps
+				if enemy.ground_dps > enemy.air_dps:
+					enemyTotalDPS += enemy.ground_dps
+				else:
+					enemyTotalDPS += enemy.air_dps
+					
+					
+			#get the closest enemy.
+			if unit_obj.unit.is_flying and enemyThreatsClose.filter(lambda x: x.can_attack_air):
+				closestEnemy = enemyThreatsClose.filter(lambda x: x.can_attack_air).closest_to(unit_obj.unit)
+			elif not unit_obj.unit.is_flying and enemyThreatsClose.filter(lambda x: x.can_attack_ground):
+				closestEnemy = enemyThreatsClose.filter(lambda x: x.can_attack_ground).closest_to(unit_obj.unit)
+			else:
+				closestEnemy = enemyThreatsClose.closest_to(unit_obj.unit)
+		return [enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS]
+
+
+
+
 	def getEnemyStats(self, unit_obj, enemy_range=10):
 		#find all the enemy units that are near us.
 		enemyThreatsClose = unit_obj.closestEnemies.closer_than(enemy_range, unit_obj.unit).filter(lambda x: x.can_attack_air or x.can_attack_ground)
@@ -1272,6 +1223,9 @@ class AdditionalPylons(sc2.BotAI):
 				closestEnemy = enemyThreatsClose.closest_to(unit_obj.unit)
 		return [enemyDPStoGround, enemyDPStoAir, enemyAirHealth, enemyGroundHealth, enemyTotalDPS, closestEnemy, enemyGroundtoAirDPS, enemyAirtoGroundDPS, enemyGroundtoGroundDPS, enemyAirtoAirDPS]
 
+
+
+
 	async def getAllAbilities(self, ignore_resources=False):
 		result = await self._client._execute(query=query_pb.RequestQuery(
 				abilities=[query_pb.RequestQueryAvailableAbilities(
@@ -1291,6 +1245,29 @@ class AdditionalPylons(sc2.BotAI):
 	def cache_enemies(self):
 		self.cached_enemies = self.known_enemy_units
 		
+	def check_movements(self):
+		new_positions = {}
+		new_moves = {}
+		#loop units and compare their current positions with the previous positions.
+		for unit in self.cached_enemies:
+			#get old position.
+			o_pos = None
+			moved = False
+			if self.unit_positions.get(unit.tag):
+				o_pos = self.unit_positions.get(unit.tag)
+			if o_pos:
+				if o_pos != unit.position:
+					#moved.
+					moved = True
+			#update the new_moves dict
+			new_moves.update({unit.tag:moved})
+			new_positions.update({unit.tag:unit.position})
+
+		self.unit_positions = new_positions
+		self.unit_moves = new_moves
+		
+		
+
 
 	def get_mapvals(self):
 		#check to see if we can get a cached version.

@@ -160,8 +160,8 @@ class Probe:
 			self.last_action = 'miner'
 			return #building			
 		
-		if 'pylon' in str(self.unit.orders).lower():
-			self.label = 'Building Pylon'
+		if not self.knownActions():
+			self.label = 'Building'
 			self.last_action = 'build'
 			return #building
 

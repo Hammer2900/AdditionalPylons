@@ -93,8 +93,8 @@ class UnitCounter:
 				[['Zealot', 1]],
 			],			
 			'Overlord': [
-				[['Phoenix', 0.25]],
-				[['Stalker', 0.01]]
+				#[['Phoenix', 0.05]],
+				[['Zealot', 0.01]]
 				],
 			'Baneling': [
 				[['HighTemplar', 1]],
@@ -116,7 +116,7 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Ultralisk': [				
-				[['VoidRay', 1], ['Immortal', 1],['Archon', 1]],
+				[['VoidRay', 1], ['Immortal', 1],['HighTemplar', 2]],
 				[['Immortal', 2]],
 				[['Stalker', 2], ['Zealot', 2]],
 				],
@@ -245,8 +245,9 @@ class UnitCounter:
 
 			#terran counters
 			'CommandCenter':[
-				[['Phoenix', 0.2], ['Zealot', 1]],
-				[['Stalker', 0.2], ['Zealot', 1]],
+				#[['Phoenix', 0.2], ['Zealot', 1]],
+				#[['Stalker', 0.2], ['Zealot', 1]],
+				[['Zealot', 1]],
 				],
 			'Marine': [
 				[['Colossus', 0.1], ['Stalker', 0.5], ['Sentry', 0.05]],
@@ -442,6 +443,14 @@ class UnitCounter:
 			'Mothership': MOTHERSHIP
 		}
 		
+		self.warpAbilities = {
+			'Zealot': WARPGATETRAIN_ZEALOT,
+			'Stalker': WARPGATETRAIN_STALKER,
+			'Adept': TRAINWARP_ADEPT,
+			'Sentry': WARPGATETRAIN_SENTRY,
+			'HighTemplar': WARPGATETRAIN_HIGHTEMPLAR,
+		}
+		
 		
 		self.intro_sayings = [
 			'May the RNG be in your favor and bring you lots of joy',
@@ -452,11 +461,30 @@ class UnitCounter:
 
 		self.loss_sayings = [
 			'My IQ came back negative.',
+			'If I only had a brain',
 			'Roses are #FF0000, violets are #0000FF, all my base are belong to you.',
 			'Tis but a scratch.',
 			'Everyone has a plan until they get punched in the mouth.',
 			'gg',
 			]
+
+		self.s1_complete = [
+			'When things are looking up, there is no point in looking elsewhere.',
+			'I used to think I was indecisive, but now I am not so sure',
+			'Life is short, smile while you still have all your teeth.',
+			'Noboty realizes that some bots expend tremendous energy merely to be normal.',
+			]		
+
+		self.s1_fail = [
+			'People say nothing is impossible, but I do nothing every day.',
+			'The warpgate to success is out of order. Can we be friends?',
+			'A plan can not fall apart if you never had it together!.',
+			'Have you seen my baseball?',
+			'It would be nice to spend resources on buildings and units, but right now they are desperately needed for more pylons.',
+			'I always arrive late to the game, but I make up for it by dying early.',
+			]		
+
+
 
 	def getLossSaying(self):
 		return random.choice(self.loss_sayings)
@@ -487,6 +515,12 @@ class UnitCounter:
 	
 	def getUnitCargo(self, unit):
 		return self.cargoSize.get(unit)
+
+	def getWarpAbility(self, name):
+		return self.warpAbilities.get(name)	
+
+	def gets1successSaying(self):
+		return random.choice(self.s1_complete)	
 	
-	
-	
+	def gets1failSaying(self):
+		return random.choice(self.s1_fail)	

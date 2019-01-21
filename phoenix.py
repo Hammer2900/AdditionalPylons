@@ -63,7 +63,7 @@ class Phoenix:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		self.bonus_range = 0
-		if self.game._science_manager._pulse_crystals_researched:
+		if self.game.buildingList.pulseCrystalsAvail:
 			self.bonus_range = 2
 
 		

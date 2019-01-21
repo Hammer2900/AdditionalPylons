@@ -16,10 +16,10 @@ allmaps = ['AutomatonLE', 'BlueshiftLE', 'CeruleanFallLE', 'DarknessSanctuaryLE'
 
 
 
-_realtime = False
+_realtime = True
 _difficulty = Difficulty.CheatVision #CheatInsane, CheatMoney, CheatVision
 _opponent = random.choice([Race.Zerg, Race.Terran, Race.Protoss, Race.Random])
-#_opponent = Race.Protoss
+#_opponent = Race.Random
 
 
 

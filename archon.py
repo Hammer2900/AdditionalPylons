@@ -33,7 +33,7 @@ Weak against:
     Immortal
 '''
 
-_debug = True
+_debug = False
 
 class Archon:
 
@@ -51,8 +51,7 @@ class Archon:
 		self.game = game
 		self.unit = unit
 		self.bonus_range = 0
-		if self.game._science_manager._extended_lance_researched:
-			self.bonus_range = 2
+
 			
 		self.runList()
 		
