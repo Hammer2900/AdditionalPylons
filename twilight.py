@@ -44,8 +44,13 @@ class Twilight:
 		#check to see if saving resources are being requested.
 		if self.resourcesSaved():
 			self.label = 'Resources being saved'
-			return		
+			return
 		
+		#only build when queues are full to maximize military production
+		if not self.game._strat_manager.allAllowedQueued:
+			self.label = 'Building Military Instead'
+			return
+						
 		#see if we can research anything.
 		if self.researchCharge():
 			return 

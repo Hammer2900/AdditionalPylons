@@ -29,8 +29,8 @@ from strategist import Strategist as stratControl
 from trainingdata import TrainingData as trainingData
 
 
-_debug = False
-_version = 'v0.820'
+_debug = True
+_version = 'v0.123'
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 
 class AdditionalPylons(sc2.BotAI):
@@ -58,7 +58,6 @@ class AdditionalPylons(sc2.BotAI):
 		self.defend_only = True
 		self.base_searched = False
 		self.expPos = None
-		self.warpgates_noqueue = False
 		#z = self.ramp.height_at(pos)
 		#worker rush variables.
 		self.rush_detected = False
@@ -199,8 +198,6 @@ class AdditionalPylons(sc2.BotAI):
 			self.checkAttack()
 			await self.build_economy()
 			self._last_economic_update = self.time + self._economic_update_gap
-			#check if warpgates are available.
-			await self.warpgatesReady()
 					
 		self.can_spend = True
 		###strategist###
@@ -290,7 +287,6 @@ class AdditionalPylons(sc2.BotAI):
 		unit_obj.last_target = Point3((searchPos.position.x, searchPos.position.y, self.getHeight(searchPos.position)))
 		return True
 
-
 	def moveToEnemies(self, unit_obj):
 		if not self.cached_enemies:
 			return False  # no enemies to move to
@@ -378,7 +374,6 @@ class AdditionalPylons(sc2.BotAI):
 				return True
 			
 		return False
-
 
 	def defend(self, unit_obj):
 		#clear out destructables around the base.
@@ -569,8 +564,6 @@ class AdditionalPylons(sc2.BotAI):
 			#not moving, just return the current position
 			return enemy.position
 		
-		
-
 	def towardsDirection(self, p, direction, distance):
 		#finds the point in front of unit that is distance ahead of it.
 		return p.position + Point2((cos(direction), sin(direction))) * distance
@@ -718,21 +711,10 @@ class AdditionalPylons(sc2.BotAI):
 		dist = unit_obj.unit.distance_to(enemy) - (unit_obj.unit.radius + enemy.radius + use_range)
 		#move away from the target that much.
 		if unit_obj.unit.position != enemy.position:
-			targetpoint = unit_obj.unit.position.towards(enemy.position, distance=dist)
-			#check to make sure the value of this box is greater than 2.  If it isn't, then find a new kite point.
-			#if self.abovePathingScore(targetpoint):			
+			targetpoint = unit_obj.unit.position.towards(enemy.position, distance=dist)		
 			return targetpoint
-			#print ('bad targetpoint, need to find new one')
-			# bestTargetPoint = self.findBestKiteTarget(targetpoint, enemy)
-			# if bestTargetPoint:
-			# 	#get  our attack range - the distance of the enemy and move that far back.
-			# 	#different than above
-			# 	dist = (unit_obj.unit.radius + enemy.radius + use_range) - unit_obj.unit.distance_to(enemy) 
-			# 	targetpoint2 = unit_obj.unit.position.towards(bestTargetPoint, distance=dist)
-			# 	return targetpoint2
-			# 
-			# #couldn't find a better targetpoint for some reason, go back to default.
-			# return targetpoint			
+
+		
 			
 			
 	def findBestKiteTarget(self, targetpoint, enemy):
@@ -952,7 +934,7 @@ class AdditionalPylons(sc2.BotAI):
 		
 		return False, closestEnemy
 
-
+	
 
 	def inDangerSimple(self, unit_obj):
 		#get the stats of the enemies around us.
@@ -1643,54 +1625,44 @@ class AdditionalPylons(sc2.BotAI):
 			del locations[10:]
 			return random.choice(locations)[1]
 
+
+	#properties
 	@property
 	def main_ramp_bottom_center(self) -> Point2:
 		pos = Point2((sum([p.x for p in self.main_base_ramp.lower]) / len(self.main_base_ramp.lower), \
 			sum([p.y for p in self.main_base_ramp.lower]) / len(self.main_base_ramp.lower)))
 		return pos
 	
-	#properties
 	@property
 	def trueGates(self) -> int:
 		#total = self.units(GATEWAY).amount + self.units(WARPGATE).amount
 		return self.units(GATEWAY).amount + self.units(WARPGATE).amount
 
-	async def warpgatesReady(self):
-		if self.units(WARPGATE).ready:
-			abilities = await self.get_available_abilities(self.units(WARPGATE).ready)
-			#print (abilities)
-			for abilitylist in abilities:
-				if len(abilitylist) > 1:
-					self.warpgates_noqueue = True
-					return					
-		self.warpgates_noqueue = False
-
 	@property
 	def queuedGates(self) -> bool:
-		if self.warpgates_noqueue:
-			return False
-		if self.units(GATEWAY).ready.noqueue:
-			return False
-		return True	
+		#get from buildling list directly in future.
+		return self.buildingList.gatesQueued
 	
 	@property
 	def queuedStarGates(self) -> bool:
-		if self.units(STARGATE).ready.noqueue.exists:
-			return False
-		return True	
+		# if self.units(STARGATE).ready.noqueue.exists:
+		# 	return False
+		# return True
+		return self.buildingList.stargatesQueued
+
 		
 	@property
 	def allQueued(self) -> bool:
-		if self.units(GATEWAY).ready.noqueue:
-			return False
-		if self.units(WARPGATE).ready.noqueue:
-			return False
-		if self.units(STARGATE).ready.noqueue.exists:
-			return False
-		if self.units(ROBOTICSFACILITY).ready.noqueue.exists:
-			return False
-		return True	
-			
+		# if self.units(GATEWAY).ready.noqueue:
+		# 	return False
+		# if self.units(WARPGATE).ready.noqueue:
+		# 	return False
+		# if self.units(STARGATE).ready.noqueue.exists:
+		# 	return False
+		# if self.units(ROBOTICSFACILITY).ready.noqueue.exists:
+		# 	return False
+		# return True	
+		return self.buildingList.allQueued			
 	
 	@property
 	def productionBuildings(self) -> int:

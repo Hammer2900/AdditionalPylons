@@ -114,6 +114,13 @@ class UnitList():
 		
 
 
+	def shieldSafe(self, inc_unit):
+		#check for other sentries near by with shields that are active.
+		shieldingList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Sentry' and v.shieldActive and v.unit.distance_to(inc_unit.unit) < 2.5 }
+		if len(shieldingList) > 0:
+			return False
+		return True
+
 
 	def getGravitonTarget(self, inc_unit):
 		phoenixList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Phoenix' and v.isBeaming }

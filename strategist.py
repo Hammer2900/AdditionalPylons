@@ -14,7 +14,7 @@ from unit_counters import UnitCounter
 This class makes our build/macro decisions.
 
 '''
-_debug = False
+_debug = True
 
 class Strategist:
 	
@@ -163,9 +163,6 @@ class Strategist:
 			else:
 				self.build.cores = 1
 				self.saving = False
-				#if self.build.roboticsfacility == 0:
-				#	self.build.roboticsfacility = 1
-				
 				self.build_queue()
 				self.train_queue()
 				self.research_queue()
@@ -609,11 +606,11 @@ class Strategist:
 	def attack_command(self):
 		if self.game.defend_only:
 			#currently in defend mode, don't attack until we have 20% more force than them.
-			if self.army_power > 25 and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
+			if self.army_power > 1 and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
 				self.game.defend_only = False
 		else:
-			#currently attacking, don't defend unless we have less than 15% force than enemy.
-			if (self.army_power < (self.enemy_power - (self.enemy_power * .15)) or self.army_power < 25) and self.game.supply_used < 190 and not self.game.under_attack:
+			#currently attacking, don't defend unless we have less than 5% force than enemy.
+			if (self.army_power < (self.enemy_power - (self.enemy_power * .05)) or self.army_power < 1) and self.game.supply_used < 190 and not self.game.under_attack:
 				self.game.defend_only = True
 		#self.game.defend_only = True		
 
@@ -1130,7 +1127,7 @@ class Strategist:
 
 	def exp_scout(self):
 		#if we have observers that exist, make sure one of them is assigned to the expansion scout job.
-		if not self.expansion_scout:
+		if not self.expansion_scout and self.game.units(OBSERVER).ready.amount > 1:
 			#nothing assigned get an observer to assign to duty.
 			if self.game.units(OBSERVER).ready.exists:
 				otag = self.game.units(OBSERVER).ready.random.tag
@@ -1192,19 +1189,26 @@ class Strategist:
 		
 
 	def need_expand(self):
-		if self.game.under_attack:
+		if self.game.buildingList.underAttack:
 			return False
 		
-		if int(self.game.time / 60) > 2 and self.game.minerals < 650 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 3 minutes.
+		if int(self.game.time / 60) > 2 and self.game.minerals < 1250 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 3 minutes.
+			if not self.game.buildingList.workersRequested:
+				return True
+		return False
+
+	def need_expand_old(self):
+		if self.game.buildingList.underAttack:
+			return False
+		
+		if int(self.game.time / 60) > 2 and self.game.minerals < 1250 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 3 minutes.
 			workers_needed = 0
 			for nexus in self.game.units(NEXUS).ready:
 				workers_needed += nexus.ideal_harvesters - nexus.assigned_harvesters
 
 			for assim in self.game.units(ASSIMILATOR).ready:
 				workers_needed += assim.ideal_harvesters - assim.assigned_harvesters
-		
-			# if self.saving:
-			# 	workers_needed -= 5
+
 
 			if workers_needed <= 0: 
 				#we can expand
@@ -1843,13 +1847,12 @@ class Strategist:
 
 	@property
 	def allAllowedQueued(self) -> bool:
-		#return True
 		self.buildersNeeded()
-		if self.gateway_needed and not self.game.queuedGates:
+		if self.gateway_needed and not self.game.buildingList.gatesQueued:
 			return False
-		if self.stargate_needed and self.game.units(STARGATE).ready.noqueue.exists:
+		if self.stargate_needed and not self.game.buildingList.stargatesQueued:
 			return False
-		if self.robotics_needed and self.game.units(ROBOTICSFACILITY).ready.noqueue.exists:
+		if self.robotics_needed and not self.game.buildingList.robosQueued:
 			return False
 		return True
 		

@@ -57,7 +57,14 @@ class CyberCore:
 		
 		#see if we can research anything.
 		if self.researchWarpgate():
-			return 
+			return
+		
+		#check to make sure everything is queued up before researching.
+		if not self.game._strat_manager.allAllowedQueued:
+			self.label = 'Building Military Instead'
+			return
+		
+		
 		if self.researchAirDPS():
 			return
 		if self.researchAirDPS2():

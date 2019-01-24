@@ -111,6 +111,12 @@ class Nexus:
 		#check to see if we are queued, if so, leave.
 		if not self.unit.noqueue:
 			return True
+
+		#only build when queues are full to maximize real military production
+		if not self.game._strat_manager.allAllowedQueued:
+			self.label = 'Building Military Instead'
+			return
+						
 		#build the mothership if we can.
 		if self.game.units(FLEETBEACON).ready.amount > 0 and self.game.units.not_structure.exclude_type([PROBE]).amount > 10 and self.game.can_afford(MOTHERSHIP) and self.game.supply_left > 8:
 			self.game.combinedActions.append(self.unit.train(MOTHERSHIP))
@@ -127,7 +133,7 @@ class Nexus:
 			if self.game.rush_detected and self.game.units(GATEWAY).ready.exists:
 				return False   #don't build probes.
 			else:	
-				if self.game.can_afford(PROBE) and self.game.supply_left > 0:
+				if self.game.can_afford(PROBE) and self.game.supply_left > 0 and self.game.units(PROBE).amount < self.game._max_workers:
 					self.game.combinedActions.append(self.unit.train(PROBE))
 					self.game.can_spend = False
 					return True

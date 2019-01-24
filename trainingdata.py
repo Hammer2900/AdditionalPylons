@@ -399,35 +399,35 @@ class TrainingData:
 #################
 
 	def saveMapData(self):
-		with open("data/mapVals.dat", "wb") as fp:
+		with open("Data/mapVals.dat", "wb") as fp:
 			pickle.dump(self.maps_dict, fp)
 
 	def saveUnitsData(self):
-		with open("data/unitRes.dat", "wb") as fp:
+		with open("Data/unitRes.dat", "wb") as fp:
 			pickle.dump(self.opp_units, fp)		
 
 	def loadData(self):
 		try:
-			with open("data/res.dat", "rb") as fp:
+			with open("Data/res.dat", "rb") as fp:
 				self.data_dict = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.data_dict = {}
 			
 		try:
-			with open("data/unitRes.dat", "rb") as fp:
+			with open("Data/unitRes.dat", "rb") as fp:
 				self.opp_units = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.opp_units = {}
 			
 		try:
-			with open("data/mapVals.dat", "rb") as fp:
+			with open("Data/mapVals.dat", "rb") as fp:
 				self.maps_dict = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.maps_dict = {}			
 			
 
 	def saveData(self):
-		with open("data/res.dat", "wb") as fp:
+		with open("Data/res.dat", "wb") as fp:
 			pickle.dump(self.data_dict, fp)
 	
 ########

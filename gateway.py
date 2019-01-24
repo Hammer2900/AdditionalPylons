@@ -80,8 +80,6 @@ class Gateway:
 				self.game.can_spend = False
 				return True
 
-
-					
 		
 	def resourcesSaved(self):
 		if self.game._strat_manager.saving:
@@ -108,7 +106,7 @@ class Gateway:
 	
 	def queueStatus(self):
 		if self.warpgate:
-			if len(self.abilities) == 1 and self.game.minerals > 100 and self.game.supply_left > 1:
+			if len(self.abilities) == 1 and (self.game.minerals > 100 or (self.game.vespene > 100 and self.game.minerals > 50)) and self.game.supply_left > 1:
 				self.queued = True
 			else:
 				self.queued = False

@@ -83,31 +83,65 @@ class BuildingList():
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.needWorkers }
 		if len(baselist) > 0:
 			return True
-
+		return False
 
 	@property
 	def underAttack(self) -> bool:
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.underAttack }
 		if len(baselist) > 0:
 			return True
+		return False
 
 	@property
 	def warpgateAvail(self) -> bool:
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'CyberneticsCore' and v.warpReady }
 		if len(baselist) > 0:
 			return True
+		return False
 
 	@property
 	def pulseCrystalsAvail(self) -> bool:
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'FleetBeacon' and v.pulseCrystalsReady }
 		if len(baselist) > 0:
 			return True
+		return False
 
 	@property
 	def extendedLanceAvail(self) -> bool:
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'RoboticsBay' and v.lanceReady }
 		if len(baselist) > 0:
 			return True
+		return False
+
+	@property
+	def gatesQueued(self) -> bool:
+		baselist = {k : v for k,v in self.building_objects.items() if (v.unit.name == 'Warpgate' or v.unit.name == 'Gateway') and not v.inQueue }
+		if len(baselist) > 0:
+			return False
+		return True
+		
+	@property
+	def stargatesQueued(self) -> bool:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Stargate' and not v.inQueue }
+		if len(baselist) > 0:
+			return False
+		return True
+	
+	@property
+	def robosQueued(self) -> bool:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'RoboticsFacility' and not v.inQueue }
+		if len(baselist) > 0:
+			return False
+		return True
+	
+	@property
+	def allQueued(self) -> bool:
+		blist = ['RoboticsFacility', 'Stargate', 'Warpgate', 'Gateway']
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name in blist and not v.inQueue }
+		if len(baselist) > 0:
+			return False
+		return True
+
 
 
 

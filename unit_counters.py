@@ -93,80 +93,80 @@ class UnitCounter:
 				[['Zealot', 1]],
 			],			
 			'Overlord': [
-				#[['Phoenix', 0.05]],
-				[['Zealot', 0.01]]
+				[['Stalker', 0.01]]
 				],
 			'Baneling': [
-				[['HighTemplar', 1]],
-				[['Disruptor', 0.1], ['Colossus', 0.1], ['Stalker', 0.5]],
+				[['Colossus', 0.1], ['Stalker', 0.5]],
 				[['Stalker', 1]],
 				],
-			'Zergling': [
-				[['HighTemplar', 0.5],  ['Zealot', 0.5]],				
+			'Zergling': [			
+				[['Colossus', 0.1], ['Zealot', 0.5]],
 				[['Zealot', 0.5]],
 				],
 			'Hydralisk': [
-				[['Colossus', 0.25], ['Carrier', 0.25], ['Zealot', 0.5]],
-				[['Colossus', 0.25],['Zealot', 0.5]],				
-				[['Stalker', 1],['Zealot', 0.5]],
-				],
+				[['Colossus', 0.25], ['Sentry', 0.25], ['Zealot', 0.5]],
+				[['Immortal', 0.25],['Sentry', 0.5]],				
+				[['Stalker', 1],['Sentry', 0.5]],
+				[['Zealot', 2]],
+				],			
 			'Mutalisk': [
-				[['Carrier', 0.25], ['Phoenix', 0.75], ['HighTemplar', 0.5]],
 				[['Phoenix', 1]],
-				[['Stalker', 1]],
+				[['Stalker', 2]],
 				],
 			'Ultralisk': [				
-				[['VoidRay', 1], ['Immortal', 1],['HighTemplar', 2]],
-				[['Immortal', 2]],
+				[['VoidRay', 1], ['Immortal', 2], ['Zealot', 2]],
+				[['VoidRay', 1], ['Zealot', 2]],
+				[['Immortal', 2], ['Zealot', 2]],
 				[['Stalker', 2], ['Zealot', 2]],
 				],
 			'Roach': [
-				[['Carrier', 0.25], ['Immortal', 0.5], ['Zealot', 0.5]],
+				[['Colossus', 0.25], ['Immortal', 0.5], ['Zealot', 0.5]],
 				[['Immortal', 0.5], ['Zealot', 0.5]],
 				[['Stalker', 1.5], ['Zealot', 0.5]],
+				[['Zealot', 2]],
 				],
 			'Infestor': [
-				[['HighTemplar', 1]],
 				[['Stalker', 1],['Zealot', 0.5]],
 				],
 			'Queen': [
+				[['Stalker', 1],['Zealot', 0.5]],
 				[['Zealot', 1]],
 				],
 			'Overseer': [
-				[['Phoenix', 0.5], ['Stalker', 0.5]],
+				[['Stalker', 1]],
 				],
 			'Ravager': [
 				[['Immortal', 0.5],['Zealot', 0.5]],
 				],
 			'Lurker': [
-				[['Observer', 0.25], ['Disruptor', 0.25]],
+				[['Observer', 0.25], ['Disruptor', 0.25], ['Immortal', 0.5]],
 				[['Observer', 0.25], ['Immortal', 0.5]],
 				],
 			'Corruptor': [
-				[['VoidRay', 1], ['Phoenix', 0.5], ['Tempest', 0.1]],
+				[['VoidRay', 1]],
 				[['Stalker', 1]],
 				],
 			'Viper': [
-				[['HighTemplar', 1]],
+				[['Phoenix', 1]],
 				[['Stalker', 1]],
 				],
 			'BroodLord': [
-				[['Tempest', 1]],
-				[['Stalker', 3],['VoidRay', 1]],
+				[['VoidRay', 1]],
+				[['Stalker', 3]],
 				],
 			
 			#protoss counters
 			'Zealot': [
-				[['Colossus', 0.1], ['Adept', 0.8]],
 				[['Adept', 1]],
 				[['Zealot', 1]],
 				],
 			'Stalker': [
-				[['Immortal', 0.75], ['Zealot', 1],['Stalker', 1]],
-				[['Zealot', 1],['Stalker', 1]],
+				[['Immortal', 0.75], ['Sentry', 0.25]],
+				[['Stalker', 1], ['Sentry', 0.25]],
+				[['Zealot', 2]],
 				],
 			'Adept': [
-				[['Stalker', 1]],
+				[['Stalker', 1], ['Sentry', 0.25]],
 				[['Zealot', 2]],
 				],
 			'Sentry': [
@@ -174,79 +174,74 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Immortal': [
-				[['Carrier', 0.25], ['Sentry', 0.25]],
 				[['VoidRay', 1], ['Sentry', 0.25]],
-				[['Zealot', 4]],
+				[['Zealot', 3], ['Sentry', 0.25]],
+				[['Zealot', 3]],
 				],
 			'WarpPrism': [
 				[['Phoenix', 0.5]],
-				[['Stalker', 3]],
+				[['Stalker', 1]],
 				],
 			'VoidRay': [
 				[['Phoenix', 1]],
 				[['Stalker', 3]],
 				],
 			'Oracle': [
-				[['Phoenix', 0.5]],
+				[['Phoenix', 1]],
 				[['Stalker', 3]],
 				],
 			'Carrier': [
-				[['Tempest', 1.5], ['VoidRay', 2],['Phoenix', 1]],
-				[['Stalker', 2], ['VoidRay', 2],['Phoenix', 1]],
-				[['Stalker', 3]],
+				[['Tempest', 3]],
+				[['VoidRay', 6]],
+				[['Stalker', 12]],
 				],
 			'Phoenix': [
-				[['Phoenix', 1]],
-				[['Stalker', 1]],
+				[['Stalker', 2]],
 				],
 			'Colossus': [
-				[['Carrier', 0.25], ['Immortal', 0.5], ['Phoenix', 0.5]],
-				[['VoidRay', 1.5]],
-				[['Immortal', 1],['Zealot', 2]],
-				[['Stalker', 2],['Zealot', 2]],
+				[['VoidRay', 2], ['Immortal', 0.5], ['Phoenix', 0.5], ['Sentry', 1]],
+				[['VoidRay', 2], ['Phoenix', 0.5]],
+				[['Immortal', 1], ['Sentry', 1]],
+				[['Stalker', 6],['Zealot', 5], ['Sentry', 1]],
+				[['Zealot', 12]],
 				],
 			'Tempest': [
-				[['VoidRay', 2], ['Phoenix', 1]],
+				[['VoidRay', 3], ['Phoenix', 1]],
 				[['Stalker', 3]],
 				],
 			'HighTemplar': [
-				[['HighTemplar', 1],['Zealot', 0.5]],
-				[['Colossus', 0.5], ['Zealot', 0.5]],
-				[['Stalker', 1], ['Zealot', 2]],
+				[['Immortal', 1], ['Sentry', 0.5]],
+				[['Stalker', 2], ['Zealot', 1], ['Sentry', 0.5]],
+				[['Zealot', 4]],
 				],
 			'Disruptor': [
-				[['VoidRay', 1]],
 				[['Immortal', 1]],
 				[['Stalker', 2]],
-				[['Zealot', 1],['Stalker', 2]],
+				[['Zealot', 4]],
 				],
 			'DarkTemplar': [
-				[['Observer', 0.5], ['Stalker', 0.5]],
+				[['Observer', 2], ['Stalker', 2]],
 				],
 			'Archon': [
-				[['VoidRay', 1]],
-				[['Immortal', 2]],
-				[['Stalker', 3]],
+				[['Immortal', 1], ['Sentry', 0.5]],
+				[['Stalker', 2], ['Zealot', 1], ['Sentry', 0.5]],
 				[['Zealot', 4]],
 				],
 			'Observer': [
-				[['Observer', 0.5], ['Phoenix', 0.5]],
-				[['Observer', 0.5], ['Stalker', 0.5]],
+				[['Observer', 0.5]],
 				],
 			'PhotonCannon': [
-				[['Immortal', 1]],
-				[['Stalker', 2]],
+				[['Immortal', 1], ['Sentry', 0.5]],
+				[['Stalker', 2], ['Sentry', 0.5]],
 				[['Zealot', 3]],
 				],
 			'Mothership': [
 				[['VoidRay', 5]],
-				[['Stalker', 3]],
+				[['Stalker', 10], ['Sentry', 4]],
 			],
 
 			#terran counters
 			'CommandCenter':[
-				#[['Phoenix', 0.2], ['Zealot', 1]],
-				#[['Stalker', 0.2], ['Zealot', 1]],
 				[['Zealot', 1]],
 				],
 			'Marine': [
@@ -255,8 +250,6 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Reaper': [
-				[['Tempest', 1]],
-				[['VoidRay', 0.5]],
 				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
@@ -268,74 +261,72 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Ghost':  [
-				[['Phoenix', 1], ['Observer', 0.25]],
+				[['Colossus', 0.5], ['Tempest', 0.5], ['Observer', 0.25]],
 				[['Stalker', 1], ['Observer', 0.25]],
 				],
 			'Hellion': [
-				[['Carrier', 1]],
-				[['VoidRay', 1]],
-				[['Stalker', 1.5], ['Zealot', 1]],
+				[['Colossus', 0.5], ['Zealot', 0.2], ['Stalker', 0.1]],
+				[['Stalker', 1.5]],
+				[['Zealot', 1]]
 				],
 			'WidowMine': [
-				[['Tempest', 1], ['Observer', 0.25]],
+				[['Tempest', 0.5], ['Colossus', 0.5], ['Observer', 0.25]],
+				[['Tempest', 1], ['Observer', 0.25]],				
 				[['VoidRay', 1], ['Observer', 0.25]],
 				[['Stalker', 0.5], ['Observer', 0.25]],
 				],
 			'Cyclone': [
-				[['Immortal', 1]],
+				[['VoidRay', 0.5], ['Immortal', 0.5], ['Sentry', 0.5]],
 				[['VoidRay', 1]],
-				[['Stalker', 0.5], ['Zealot', 0.5]],
+				[['Immortal', 1], ['Sentry', 0.5]],
+				[['Stalker', 1], ['Sentry', 0.5]],
+				[['Zealot', 1]],
 				],
 			'SiegeTank': [
-				[['VoidRay', 1], ['Immortal', 1]],
-				[['Immortal', 1], ['Zealot', 0.5]],
+				[['VoidRay', 1]],
+				[['Stalker', 1], ['Sentry', 0.5]],
 				[['Zealot', 2]],
 				],
 			'Thor': [
-				[['VoidRay', 1]],
-				[['Immortal', 1], ['Zealot', 2]],
-				[['Stalker', 1], ['Zealot', 2]],
+				[['Immortal', 1],['Sentry', 0.5], ['Zealot', 0.5]],
+				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.5]],
+				[['Zealot', 4]],
 				],
 			'Viking': [
 				[['Tempest', 1]],
 				[['VoidRay', 1]],
-				[['HighTemplar', 1]],
-				[['Stalker', 1]],
+				[['Stalker', 1], ['Sentry', 0.5]],
 				],
 			'Medivac': [
-				[['HighTemplar', 1],['Stalker', 1]],
-				[['Tempest', 1], ['Phoenix', 1]],
+				[['Phoenix', 1]],
 				[['Stalker', 1]],
 				],
 			'Liberator': [
-				[['Tempest', 1], ['Phoenix', 1]],
-				[['VoidRay', 1]],
+				[['Tempest', 1]],
+				[['Phoenix', 1]],
 				[['Stalker', 2]],
 				],
 			'Raven': [
-				[['HighTemplar', 1],['Phoenix', 1]],
-				[['HighTemplar', 1], ['Phoenix', 1]],
-				[['Stalker', 2], ['Phoenix', 1]],
+				[['Tempest', 1]],
+				[['Phoenix', 1], ['Stalker', 1]],
+				[['Stalker', 2]],
 				],
 			'Banshee': [
 				[['Phoenix', 1], ['Observer', 0.5]],
 				[['Stalker', 2], ['Observer', 0.5]],
 				],
 			'Battlecruiser': [
-				[['Tempest', 1.5], ['Phoenix', 0.5]],
 				[['VoidRay', 2.5], ['Phoenix', 0.5]],
 				[['Stalker', 4]]
 				],
 			'VikingFighter': [
-				[['Tempest', 1]],
-				[['VoidRay', 1]],
-				[['HighTemplar', 1]],
+				[['Carrier', 1]],
+				[['VoidRay', 2]],
 				[['Stalker', 2]],
 				],
 			'VikingAssault': [
-				[['Tempest', 1]],
-				[['VoidRay', 1]],
-				[['HighTemplar', 1]],
+				[['Carrier', 1]],
+				[['VoidRay', 2]],
 				[['Stalker', 2]],
 				],
 			'MissileTurret': [
@@ -457,6 +448,7 @@ class UnitCounter:
 			'gl',
 			'Artificial intelligence is no match for natural stupidity.',
 			'Have fun storming the castle!',
+			'Hello, my name is AddtionalPylons. You killed my father. Prepare to die.',
 			]	
 
 		self.loss_sayings = [
@@ -465,14 +457,20 @@ class UnitCounter:
 			'Roses are #FF0000, violets are #0000FF, all my base are belong to you.',
 			'Tis but a scratch.',
 			'Everyone has a plan until they get punched in the mouth.',
+			'Inconceivable!',
 			'gg',
+			'I have people skills!',
+			'That escalated quickly.',
 			]
 
 		self.s1_complete = [
 			'When things are looking up, there is no point in looking elsewhere.',
 			'I used to think I was indecisive, but now I am not so sure',
 			'Life is short, smile while you still have all your teeth.',
-			'Noboty realizes that some bots expend tremendous energy merely to be normal.',
+			'We get the warhead and we hold the world ransom for... One. Million. Dollars.',
+			"Life moves pretty fast. If you don't stop and look around once in a while, you could miss it.",
+			'All right, all right, all right.',
+			"So you're telling me there's a chance."
 			]		
 
 		self.s1_fail = [
@@ -482,6 +480,11 @@ class UnitCounter:
 			'Have you seen my baseball?',
 			'It would be nice to spend resources on buildings and units, but right now they are desperately needed for more pylons.',
 			'I always arrive late to the game, but I make up for it by dying early.',
+			'Excuse me. I believe you have my stapler.',
+			'Bueller . . . Bueller . . . Bueller',
+			'Looks like I picked the wrong week to quit sniffing glue.',
+			"You're killin' me, Smalls.",
+			'Bye, Felisha.',
 			]		
 
 

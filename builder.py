@@ -83,9 +83,6 @@ class Builder:
 		if self.game.under_attack and self.game.minerals < 500:
 			return
 
-				
-		#await self.upgrade_gateways()
-		
 		#build pylons.
 		if self.canBuildPylon() and await self.build_pylons():
 			self.game.can_spend = False

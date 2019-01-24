@@ -49,6 +49,8 @@ class Sentry:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.shielded = False
+		self.shield_time = None
 
 	
 	def make_decision(self, game, unit):
@@ -68,6 +70,8 @@ class Sentry:
 
 
 	def runList(self):
+		#if shield status
+		self.shield_status()
 		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
@@ -140,14 +144,15 @@ class Sentry:
 			#check to see if we have friends near.
 			fUnits = self.game.units().exclude_type([SENTRY,WARPPRISM]).not_flying.filter(lambda x: x.can_attack_ground).closer_than(1.7, self.unit)
 			if fUnits and fUnits.amount > 1:
-				if self.activateShield():
-					return True
+				if self.game.unitList.shieldSafe(self):
+					if self.activateShield():
+						return True
 		return False
 			
 			
 
 	def makeScout(self):
-		if self.unit.energy > 175 or self.game.units(OBSERVER).ready.amount < 4:
+		if self.unit.energy > 150 or self.game.units(OBSERVER).ready.amount < 1 and self.game.defend_only:
 			if AbilityId.HALLUCINATION_PHOENIX in self.abilities and self.game.can_afford(HALLUCINATION_PHOENIX ):
 				self.game.combinedActions.append(self.unit(AbilityId.HALLUCINATION_PHOENIX ))
 				return True
@@ -157,6 +162,8 @@ class Sentry:
 	def activateShield(self):
 		if AbilityId.GUARDIANSHIELD_GUARDIANSHIELD in self.abilities and self.game.can_afford(GUARDIANSHIELD_GUARDIANSHIELD ):
 			self.game.combinedActions.append(self.unit(AbilityId.GUARDIANSHIELD_GUARDIANSHIELD ))
+			self.shielded = True
+			self.shield_time = self.game.time
 			return True
 		return False
 
@@ -174,8 +181,9 @@ class Sentry:
 				if enemyThreatsClose.exists:
 					closestEnemy = enemyThreatsClose.closest_to(closestFriendly)
 					if closestEnemy.target_in_range(closestFriendly):
-						if self.activateShield():
-							return True
+						if self.game.unitList.shieldSafe(self):						
+							if self.activateShield():
+								return True
 		return False
 
 	def center_friendlies(self):
@@ -206,6 +214,11 @@ class Sentry:
 				return True
 		return False
 
+	def shield_status(self):
+		if self.shielded and self.shield_time >= self.game.time + 11:
+			self.shielded = False
+
+
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))
 		if actionStr == self.last_action:
@@ -213,6 +226,11 @@ class Sentry:
 		self.last_action = actionStr
 		return True
 	
+	@property
+	def shieldActive(self) -> bool:
+		return self.shielded
+
+
 	@property
 	def position(self) -> Point2:
 		return self.saved_position

@@ -57,8 +57,13 @@ class Forge:
 		#check to see if saving resources are being requested.
 		if self.resourcesSaved():
 			self.label = 'Resources being saved'
-			return		
+			return
 		
+		#only research when queues are full to maximize military
+		if not self.game._strat_manager.allAllowedQueued:
+			self.label = 'Building Military Instead'
+			return
+				
 		#see if we can research anything.
 		if self.researchGroundDPS():
 			return
