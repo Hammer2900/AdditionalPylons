@@ -29,7 +29,7 @@ from typing import List, Dict, Set, Tuple, Any, Optional, Union  # mypy type che
 class Client(Protocol):
     def __init__(self, ws):
         super().__init__(ws)
-        self.game_step = 8
+        self.game_step = 2
         self._player_id = None
         self._game_result = None
         self._debug_texts = list()
