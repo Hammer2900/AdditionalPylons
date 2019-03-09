@@ -15,7 +15,6 @@ class TrainingData:
 	def __init__(self):
 		self.data_dict = {}
 		self.opp_units = {}
-		self.maps_dict = {}
 		#load the pickle data.
 		self.loadData()
 		self.strat_count = 6
@@ -334,22 +333,12 @@ class TrainingData:
 #Data Management#
 #################
 
-	def loadMapVals(self, map_name):
-		if self.maps_dict.get(map_name):
-			return self.maps_dict.get(map_name)
-		return None
-
-	def saveMapVals(self, map_name, map_dict):
-		self.maps_dict.update({map_name:map_dict})
-		self.saveMapData()
-
-
 	def cleanStrat(self, opp_id, strat_id, map_name):
-		#get the list of match_ids of the opponenet and only keep the most recent 5 matches.
+		#get the list of match_ids of the opponenet and only keep the most recent 10 matches.
 		#opp_data = self.data_dict.get(opp_id)
 		opp_data = [x for x in self.data_dict.get(opp_id) if x[1] == strat_id and x[4] == map_name]
 		opp_data = sorted(opp_data, key=itemgetter(0), reverse=True)
-		del opp_data[4:]
+		del opp_data[9:]
 		#remove existing data for the strat_id and create a new list for the dictionary.
 		old_data = self.data_dict.get(opp_id)
 		for match in old_data:
@@ -398,37 +387,31 @@ class TrainingData:
 #File Management#
 #################
 
-	def saveMapData(self):
-		with open("Data/mapVals.dat", "wb") as fp:
-			pickle.dump(self.maps_dict, fp)
 
 	def saveUnitsData(self):
-		with open("Data/unitRes.dat", "wb") as fp:
+		with open("data/unitRes.dat", "wb") as fp:
 			pickle.dump(self.opp_units, fp)		
 
 	def loadData(self):
 		try:
-			with open("Data/res.dat", "rb") as fp:
+			with open("data/res2.dat", "rb") as fp:
 				self.data_dict = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.data_dict = {}
 			
 		try:
-			with open("Data/unitRes.dat", "rb") as fp:
+			with open("data/unitRes.dat", "rb") as fp:
 				self.opp_units = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.opp_units = {}
 			
-		try:
-			with open("Data/mapVals.dat", "rb") as fp:
-				self.maps_dict = pickle.load(fp)
-		except (OSError, IOError) as e:
-			self.maps_dict = {}			
-			
 
 	def saveData(self):
-		with open("Data/res.dat", "wb") as fp:
-			pickle.dump(self.data_dict, fp)
+		try:
+			with open("data/res2.dat", "wb") as fp:
+				pickle.dump(self.data_dict, fp)
+		except (OSError, IOError) as e:
+			print (str(e))
 	
 ########
 #Others#

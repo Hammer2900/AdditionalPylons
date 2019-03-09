@@ -55,9 +55,6 @@ class Gateway:
 		if await self.trainUnit():
 			return
 		
-
-	
-	
 	
 	async def trainUnit(self):
 		#make sure we can spend.
@@ -170,8 +167,37 @@ class Gateway:
 		self.label = 'Allowing resources elsewhere'
 		return None	
 	
-	
 	async def warpgate_placement(self, unit_ability):
+		#todo: first, check for a warp prism in pylon mode.
+		#second, check for proxy pylon.
+		startPos = random.choice(self.game.enemy_start_locations)
+		if not self.game.under_attack and not self.game.defend_only:
+			pylon = self.game.units(PYLON).ready.closest_to(startPos.position)
+			pos = pylon.position.to2.random_on_distance(4)
+			placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+			if placement:
+				return placement
+		
+		#else warp them in near super pylons closest to enemies if around.		
+		if self.game.units(PYLON).ready.exists and self.game.units(NEXUS).exists:
+			#find the nexus we want to warp near.
+			nexus = None
+			if self.game.known_enemy_units.exists:
+				nexus = self.game.units(NEXUS).ready.closest_to(self.game.known_enemy_units.closest_to(self.game.start_location))
+			else:
+				nexus = self.game.units(NEXUS).ready.closest_to(random.choice(self.game.enemy_start_locations))
+			if nexus:
+				#find a super pylon near the nexus.
+				pylons = self.game.units(PYLON).ready.closer_than(6, nexus)
+				for pylon in pylons:
+					pos = pylon.position.to2.random_on_distance(4)
+					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+					if placement:
+						return placement
+		return None	
+	
+		
+	async def warpgate_placement_working(self, unit_ability):
 		#first, check for a warp prism in pylon mode.
 		#second, check for proxy pylon.
 		if not self.game.under_attack and not self.game.defend_only and self.game._build_manager.check_pylon_loc(self.game.proxy_pylon_loc):

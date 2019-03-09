@@ -64,6 +64,12 @@ class Disruptor:
 	def runList(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
+			
 			#send a nova if we can.
 			if self.sendNova():
 				self.label = 'Firing Nova'
@@ -164,7 +170,7 @@ class Disruptor:
 			enemycenter =  self.game.center3d(self.closestEnemies.not_structure.not_flying.closer_than(10, self.unit))
 			#check if there are 3 targets in the radius.
 			enemies = self.closestEnemies.not_structure.not_flying.closer_than(1.5, enemycenter)
-			if enemies and enemies.amount > 2:
+			if enemies and enemies.amount > 0:
 				#find the closest enemy to center.
 				closestEnemy = enemies.closest_to(enemycenter)
 				#check to make sure there are no friendlies within 1.5 of the target.

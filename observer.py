@@ -3,6 +3,7 @@ import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.constants import *
 from sc2.position import Point2, Point3
+from sc2 import Race
 
 '''
 Observer Info
@@ -43,7 +44,7 @@ class Observer:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 
-		if self.expansionScout:
+		if self.expansionScout and self.game.enemy_race == Race.Zerg:
 			self.expansionList()
 		else:
 			self.runList()
@@ -59,6 +60,7 @@ class Observer:
 
 	def expansionList(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
+		self.closestEnemies = self.closestEnemies.exclude_type([DRONE,PROBE,SCV])
 		if self.closestEnemies.amount > 0:		
 			if self.keepSafe():
 				self.label = 'Retreating'
@@ -80,6 +82,27 @@ class Observer:
 		if self.findFriendly():
 			self.label = 'Spotting for Friendly'
 			return #found a place to spot.
+	
+		#keep distance from other observers.
+		if self.keepDistance():
+			self.label = 'Keeping Distance'
+			return #moving away.
+
+		#6 move the closest known enemy.
+		if self.game.moveToEnemies(self):
+			self.label = 'Spotter Moving Enemy'
+			return #moving to next target.
+		
+		#7 wait until our shield is at 100%
+		if self.unit.shield_percentage < 1:
+			self.label = 'Spotter Full Regen'
+			self.last_target = None	
+			return #chillin until healed
+			
+		#8 find the enemy
+		if self.game.searchEnemies(self):
+			self.label = 'Spotter Searching'
+			return #looking for targets	
 		
 		#if it's all taken, go scout the enemy.
 		if self.scoutEnemy():

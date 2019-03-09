@@ -75,6 +75,10 @@ class Sentry:
 		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
 			
 			#see if we need to shield our friends.
 			if self.shieldFriends():
@@ -88,9 +92,9 @@ class Sentry:
 					self.label = 'Retreating Safe'
 					return #staying alive
 			else:
-				#see if we can shield anyway
-				if self.activateShield():
-					self.label = 'Shield Self'
+				#put up a dummy to get attacked/scare off.
+				if self.activateDecoy():
+					self.label = 'Decoy Sent'
 					return #shields up to live longer
 	
 			#1 priority is always attack first if we can
@@ -151,16 +155,23 @@ class Sentry:
 			
 			
 
+	def activateDecoy(self):
+		# if AbilityId.HALLUCINATION_COLOSSUS in self.abilities and self.game.can_afford(HALLUCINATION_COLOSSUS):
+		# 	self.game.combinedActions.append(self.unit(AbilityId.HALLUCINATION_COLOSSUS))
+		# 	return True
+		return False			
+		
+
 	def makeScout(self):
 		if self.unit.energy > 150 or self.game.units(OBSERVER).ready.amount < 1 and self.game.defend_only:
-			if AbilityId.HALLUCINATION_PHOENIX in self.abilities and self.game.can_afford(HALLUCINATION_PHOENIX ):
+			if AbilityId.HALLUCINATION_PHOENIX in self.abilities and self.game.can_afford(HALLUCINATION_PHOENIX):
 				self.game.combinedActions.append(self.unit(AbilityId.HALLUCINATION_PHOENIX ))
 				return True
 		return False		
 		
 		
 	def activateShield(self):
-		if AbilityId.GUARDIANSHIELD_GUARDIANSHIELD in self.abilities and self.game.can_afford(GUARDIANSHIELD_GUARDIANSHIELD ):
+		if AbilityId.GUARDIANSHIELD_GUARDIANSHIELD in self.abilities and self.game.can_afford(GUARDIANSHIELD_GUARDIANSHIELD):
 			self.game.combinedActions.append(self.unit(AbilityId.GUARDIANSHIELD_GUARDIANSHIELD ))
 			self.shielded = True
 			self.shield_time = self.game.time
@@ -170,6 +181,7 @@ class Sentry:
 
 	def shield_friendlies(self):
 		fUnits = self.game.units().exclude_type([SENTRY,WARPPRISM]).not_flying.filter(lambda x: x.can_attack_ground)
+		closestFriendly = None
 		if self.closestEnemies.exists and fUnits:
 			closestFriendly = fUnits.closest_to(self.game.known_enemy_units.closest_to(self.unit))
 		elif fUnits:
@@ -183,6 +195,9 @@ class Sentry:
 					if closestEnemy.target_in_range(closestFriendly):
 						if self.game.unitList.shieldSafe(self):						
 							if self.activateShield():
+								return True
+						else:
+							if self.activateDecoy():
 								return True
 		return False
 

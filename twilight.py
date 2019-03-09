@@ -2,7 +2,7 @@ import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.constants import *
 
-_debug = True
+_debug = False
 
 class Twilight:
 

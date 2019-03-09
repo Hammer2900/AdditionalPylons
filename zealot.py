@@ -72,18 +72,22 @@ class Zealot:
 	def runList(self):
 		#get all the enemies around us.
 		self.closestEnemies = self.game.getUnitEnemies(self)
-		#self.closestEnemies = self.closestEnemies.exclude_type([REAPER])
+		#self.closestEnemies = self.closestEnemies.exclude_type([REAPER]) #don't do it.
 		if self.closestEnemies.amount > 0:
 			#enemies around us mode.
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
+			
 			#attack if possible.
 			if self.game.attack(self):
 				self.label = 'Attacking'
 				return #attacked already this step.
 
-			#see if we are able to escape if needed.
-			if self.game.keepSafe(self):
-				self.label = 'Retreating Safe'
-				return #staying alive
+			#see if we need to evaluate the battle before entering it.
+			if self.game.waitForce(self):
+			 	self.label = 'Waiting for reinforcements'
+			 	return #staying alive
 
 			#look around our range and find the highest target value and move towards it.
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):

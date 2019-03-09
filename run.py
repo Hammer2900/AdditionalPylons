@@ -10,19 +10,18 @@ bot = Bot(Race.Protoss, AdditionalPylons())
 #bot = Bot(Race.Random, ExampleBot())
 
 
-allmaps = ['AutomatonLE', 'BlueshiftLE', 'CeruleanFallLE', 'DarknessSanctuaryLE', 'KairosJunctionLE', 'PortAleksanderLE', 'ParaSiteLE'] # all maps
+allmaps = ['AutomatonLE', 'BlueshiftLE', 'CeruleanFallLE', 'DarknessSanctuaryLE', 'PortAleksanderLE', 'ParaSiteLE'] # all maps
 
-#allmaps = ['CeruleanFallLE'] # all maps
+allmaps = ['BlueshiftLE'] # wierd mineral maps only
 
+_difficulty = random.choice([Difficulty.CheatInsane, Difficulty.CheatMoney, Difficulty.CheatVision])
 
 
 _realtime = False
-_difficulty = Difficulty.CheatVision #CheatInsane, CheatMoney, CheatVision
+
+_difficulty = Difficulty.VeryEasy #CheatInsane, CheatMoney, CheatVision
 _opponent = random.choice([Race.Zerg, Race.Terran, Race.Protoss, Race.Random])
-_opponent = Race.Protoss
-
-
-
+_opponent = Race.Random
 
 # Start game
 if __name__ == '__main__':
@@ -32,12 +31,7 @@ if __name__ == '__main__':
         run_ladder_game(bot)
     else:
         # Local game
-        print("Starting local game...")
-        # sc2.run_game(sc2.maps.get("Abyssal Reef LE"), [
-        #     bot,
-        #     Computer(Race.Protoss, Difficulty.VeryHard)
-        # ], realtime=True)
-        
+        print("Starting local game...")      
         sc2.run_game(sc2.maps.get(random.choice(allmaps)), [
             Bot(Race.Protoss, AdditionalPylons()),
             Computer(_opponent, _difficulty)

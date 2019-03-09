@@ -6,7 +6,7 @@ from sc2.position import Point2, Point3
 from unit_counters import UnitCounter
 
 
-_debug = True
+_debug = False
 
 class Stargate:
 

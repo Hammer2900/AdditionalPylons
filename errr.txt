@@ -1,0 +1,23 @@
+ERROR:sc2.main:AI step threw an error
+Traceback (most recent call last):
+  File "D:\Ladder\Bots\AdditionalPylons\sc2\main.py", line 124, in _play_game_ai
+    await ai.on_step(iteration)
+  File "D:\Ladder\Bots\AdditionalPylons\additionalpylons.py", line 147, in on_step
+    await self.buildingList.make_decisions(self)
+  File "D:\Ladder\Bots\AdditionalPylons\building_list.py", line 29, in make_decisions
+    await obj.make_decision(self.game, unit)
+  File "D:\Ladder\Bots\AdditionalPylons\nexus.py", line 58, in make_decision
+    self.communicateNeeds()
+  File "D:\Ladder\Bots\AdditionalPylons\nexus.py", line 329, in communicateNeeds
+    if not self.game._build_manager.check_pylon_loc(self.p6, searchrange=4):
+  File "D:\Ladder\Bots\AdditionalPylons\builder.py", line 718, in check_pylon_loc
+    return self.game.units(PYLON).closer_than(searchrange, pylonloc).exists
+  File "D:\Ladder\Bots\AdditionalPylons\sc2\units.py", line 149, in closer_than
+    return self.filter(lambda unit: unit.position._distance_squared(position.to2) < distance_squared)
+  File "D:\Ladder\Bots\AdditionalPylons\sc2\units.py", line 161, in filter
+    return self.subgroup(filter(pred, self))
+  File "D:\Ladder\Bots\AdditionalPylons\sc2\units.py", line 158, in subgroup
+    return Units(list(units), self.game_data)
+  File "D:\Ladder\Bots\AdditionalPylons\sc2\units.py", line 149, in <lambda>
+    return self.filter(lambda unit: unit.position._distance_squared(position.to2) < distance_squared)
+AttributeError: 'NoneType' object has no attribute 'to2'

@@ -44,7 +44,14 @@ class UnitList():
 
 	def remove_object(self, unit_tag):
 		if self.unit_objects.get(unit_tag):
+			unit_obj = self.unit_objects.get(unit_tag)
+			
+			#check to see if it's our probe scout, if so create another.
+			# if unit_obj.unit.name == 'Probe' and unit_obj.scout:
+			# 	#was a scout, create a new one.
+			# 	self.assignScout()
 			del self.unit_objects[unit_tag]
+			
 		
 	def load_object(self, unit):
 		#print ('Unit Created:', unit.name, unit.tag)
@@ -113,6 +120,20 @@ class UnitList():
 		# 	print ('Unit Created:', unit.name, unit.tag)
 		
 
+	def assignScout(self):
+		#if it's late in the game and we aren't attacking, then don't make a replacement.
+		if self.game.defend_only and self.game.time > 360:
+			return
+		#find a probe to assign as a scout.
+		probeList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Probe' and not v.collect_only and not v.scout }
+		for key, probe in probeList.items():
+			probe.becomeScout()
+			return
+			
+
+	def unitCount(self, unit_name):
+		unitList = {k : v for k,v in self.unit_objects.items() if v.unit.name == unit_name }
+		return len(unitList)
 
 	def shieldSafe(self, inc_unit):
 		#check for other sentries near by with shields that are active.
@@ -142,13 +163,36 @@ class UnitList():
 		return {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Probe' }.items()
 
 
+	def friendlyEngagedFighters(self, closestEnemy, friendRange=10):
+		#find all the units near the closest Enemy that aren't retreating.
+		baselist = {k : v for k,v in self.unit_objects.items() if v.unit.position.to2.distance_to(closestEnemy.position.to2) < friendRange }
+		#find out how much DPS we have going on.
+		friendDPStoGround = 0
+		friendDPStoAir = 0
+		friendAirHealth = 0
+		friendGroundHealth = 0
+		friendTotalDPS = 0
+		for k, friendObj in baselist.items():
+			if friendObj.unit.is_flying:
+				friendAirHealth += friendObj.unit.health + friendObj.unit.shield
+			else:
+				friendGroundHealth += friendObj.unit.health + friendObj.unit.shield
+			friendDPStoGround += friendObj.unit.ground_dps
+			friendDPStoAir += friendObj.unit.air_dps
+			if friendObj.unit.ground_dps > friendObj.unit.air_dps:
+				friendTotalDPS += friendObj.unit.ground_dps
+			else:
+				friendTotalDPS += friendObj.unit.air_dps
+
+		return [friendDPStoGround, friendDPStoAir, friendAirHealth, friendGroundHealth, friendTotalDPS]		
+		
 
 	def friendlyFighters(self, inc_unit, friendRange=10):
 		#find all the units near the passed units position that aren't retreating.
 		#baselist = {k : v for k,v in self.unit_objects.items() if not v.isRetreating and v.unit.position.to2.distance_to(inc_unit.position.to2) < friendRange }
 		baselist = {k : v for k,v in self.unit_objects.items() if v.unit.position.to2.distance_to(inc_unit.position.to2) < friendRange }
 
-		#find out how much ground DPS we have going on.
+		#find out how much DPS we have going on.
 		friendDPStoGround = 0
 		friendDPStoAir = 0
 		friendAirHealth = 0

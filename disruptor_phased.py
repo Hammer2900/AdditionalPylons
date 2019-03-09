@@ -7,6 +7,8 @@ from sc2.position import Point2, Point3
 '''
 Disruptor Phase AOE Ball
 -----------------
+unit.name = DisruptorPhased
+
 Searches for the most enemies to damage.
 '''
 

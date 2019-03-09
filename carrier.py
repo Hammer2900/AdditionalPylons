@@ -131,10 +131,11 @@ class Carrier:
 	def findKiteBackTarget(self, enemy):
 		#find out what our attack range is.
 		#get the distance of the enemy - our attack range and move that far back.
-		dist = self.unit.distance_to(enemy) - (8 + enemy.radius)
+		dist = self.unit.distance_to(enemy) - 8
 		#move away from the target that much.
-		targetpoint = self.unit.position.towards(enemy.position, distance=dist)
-		return targetpoint
+		if self.unit.position != enemy.position:
+			targetpoint = self.unit.position.towards(enemy.position, distance=dist)
+			return targetpoint
 
 	def KeepKiteRange(self):
 		#kite if we can.
@@ -157,9 +158,10 @@ class Carrier:
 
 	def findKiteTarget(self):
 		#find the closest unit to us and move away from it.
-		enemyThreats = self.closestEnemies.not_structure.closer_than(8, self.unit).filter(lambda x: x.can_attack_air).sorted(lambda x: x.distance_to(self.unit))
+		enemyThreats = self.closestEnemies.closer_than(10, self.unit).filter(lambda x: x.can_attack_air).sorted(lambda x: x.distance_to(self.unit))
 		if enemyThreats:
 			return enemyThreats[0]
+		
 
 
 	def checkNewAction(self, action, posx, posy):

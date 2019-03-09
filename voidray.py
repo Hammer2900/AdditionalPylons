@@ -52,6 +52,7 @@ class VoidRay:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.last_attack_start = 0
 		
 		
 	def make_decision(self, game, unit):
@@ -75,11 +76,17 @@ class VoidRay:
 		if self.closestEnemies.amount > 0:
 			#see if we are able to escape if needed.
 			if self.game.canEscape(self) and self.game.keepSafe(self):
+				self.cancelPrismatic()
 				self.label = 'Retreating Safe'
 				return #staying alive
+			
+			if (self.last_attack_start + 1.305) > self.game.time:
+				self.label = 'Continued Attacking'
+				return #still attacking.
 
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
+				self.last_attack_start = self.game.time
 				self.label = 'Attacking'
 				return #we attacked this step.
 	
@@ -90,19 +97,20 @@ class VoidRay:
 	
 			#2 keep safe again.
 			if self.game.keepSafe(self):
+				self.cancelPrismatic()				
 				self.label = 'Retreating Death'
 				return #staying alive
+
+			#3 priority is to keep our distance from enemies
+			if self.game.KeepKiteRange(self):
+			 	self.label = 'Kiting'
+			 	return #kiting
 			
 			#look around our range and find the highest target value and move towards it.
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):
 				self.label = 'Moving Priority Target'
 				return #moving towards a better target.
 			
-
-			#3 priority is to keep our distance from enemies
-			#if self.game.KeepKiteRange(self):
-			# 	self.label = 'Kiting'
-			# 	return #kiting
 
 		#if we are in defend mode and we aren't under attack, then go to the defend point.
 		if self.game.defend_only and not self.game.under_attack:
@@ -133,7 +141,11 @@ class VoidRay:
 		self.label = 'Idle'
 
 
-
+	def cancelPrismatic(self):
+		if AbilityId.VOIDRAYSWARMDAMAGEBOOSTCANCEL_CANCEL in self.abilities and self.game.can_afford(VOIDRAYSWARMDAMAGEBOOSTCANCEL_CANCEL):
+			self.game.combinedActions.append(self.unit(AbilityId.VOIDRAYSWARMDAMAGEBOOSTCANCEL_CANCEL))
+			return True
+				
 	def armorDPSBuff(self):
 		targetEnemy = self.game.findBestTarget(self)
 		if targetEnemy:

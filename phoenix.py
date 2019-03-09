@@ -55,6 +55,7 @@ class Phoenix:
 		self.label = 'Idle'
 		self.scout = None
 		self.beam_unit = None
+		self.base_searched = False
 
 
 	def make_decision(self, game, unit):
@@ -65,8 +66,7 @@ class Phoenix:
 		self.bonus_range = 0
 		if self.game.buildingList.pulseCrystalsAvail:
 			self.bonus_range = 2
-
-		
+			
 		if self.scout is None:
 			if AbilityId.GRAVITONBEAM_GRAVITONBEAM in self.abilities:
 				self.scout = False
@@ -102,7 +102,7 @@ class Phoenix:
 				return #staying alive
 
 		#8 find the enemy
-		if self.game.searchEnemies(self):
+		if self.searchEnemies():
 			self.label = 'Searching'
 			return #looking for targets
 
@@ -174,6 +174,27 @@ class Phoenix:
 
 		self.label = 'Idle'
 
+
+
+
+	def searchEnemies(self):
+		#search for enemies
+		if self.unit.is_moving:
+			return True #moving somewhere already
+		#go to the enemy base first.
+		startPos = random.choice(self.game.enemy_start_locations)
+		if self.unit.distance_to(startPos) > 10 and not self.base_searched:
+			self.game.combinedActions.append(self.unit.move(startPos))
+			self.last_target = Point3((startPos.position.x, startPos.position.y, self.game.getHeight(startPos.position)))
+			return True
+		else:
+			self.base_searched = True
+				
+		searchPos = self.game.getSearchPos(self.unit)
+		if self.checkNewAction('move', searchPos[0], searchPos[1]):
+			self.game.combinedActions.append(self.unit.move(searchPos))
+			self.last_target = Point3((searchPos.position.x, searchPos.position.y, self.game.getHeight(searchPos.position)))
+		return True
 	
 	def attackBeamed(self):
 		targetEnemy = self.game.unitList.getGravitonTarget(self)
@@ -193,10 +214,10 @@ class Phoenix:
 		if self.unit.weapon_cooldown == 0 and not self.game.unitList.getGravitonTarget(self):    #make sure we aren't just between something else we could be attacking.
 			ok_units = [PROBE, SCV, DRONE, IMMORTAL, MARAUDER, STALKER, REAPER, HELLION, CYCLONE, SIEGETANK, QUEEN, LURKER, INFESTOR, ROACH, RAVAGER, HIGHTEMPLAR, DARKTEMPLAR]
 			if AbilityId.GRAVITONBEAM_GRAVITONBEAM in self.abilities:
-				friends = self.game.units.filter(lambda x: x.can_attack_air).closer_than(8, self.unit)
+				friends = self.game.units.filter(lambda x: x.can_attack_air).closer_than(3, self.unit)
 				if friends.amount > 1:
 				#make sure friendlies are around to attack it.
-					closerEnemies = self.closestEnemies.of_type(ok_units).closer_than(8, self.unit)
+					closerEnemies = self.closestEnemies.of_type(ok_units).closer_than(4, self.unit)
 					if closerEnemies:
 						#look around for a unit to lift, giving priority to ones that can attack us.
 						if closerEnemies.filter(lambda x: x.can_attack_air).exists:
@@ -211,14 +232,15 @@ class Phoenix:
 							self.game.combinedActions.append(self.unit(AbilityId.GRAVITONBEAM_GRAVITONBEAM, target))
 							self.beam_unit = target
 							return True				
-					elif self.unit.energy > 100 and self.closestEnemies.not_flying.filter(lambda x: not x.is_massive).closer_than(8, self.unit).exists:
+					elif self.unit.energy > 100 and self.closestEnemies.not_flying.filter(lambda x: not x.is_massive).closer_than(4, self.unit).exists:
 						#take the one with the most hitpoints.
 						target = self.closestEnemies.not_flying.filter(lambda x: not x.is_massive).closer_than(8, self.unit).sorted(lambda x: x.health + x.shield, reverse=True).first
 						self.game.combinedActions.append(self.unit(AbilityId.GRAVITONBEAM_GRAVITONBEAM, target))
 						self.beam_unit = target
 						return True
 		return False
-				
+					
+	
 	
 	
 	def checkNewAction(self, action, posx, posy):

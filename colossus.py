@@ -40,7 +40,7 @@ Weak against:
     Immortal
 '''
 
-_debug = False
+_debug = True
 
 class Colossus:
 
@@ -74,7 +74,13 @@ class Colossus:
 		
 	def runList(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
-		if self.closestEnemies.amount > 0:		
+		if self.closestEnemies.amount > 0:
+			
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.	
+			
 			#1 priority is always attack first if we can
 			if self.game.attack(self, self.bonus_range):
 				self.label = 'Attacking'

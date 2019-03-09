@@ -53,12 +53,9 @@ class Immortal:
 		self.game = game
 		self.unit = unit
 		
-		#buildStart = datetime.datetime.now()
 		self.runList()
 		
-		#buildTime = datetime.datetime.now() - buildStart
-		#buildTime = int(buildTime.total_seconds() * 1000)
-		#print ('immortal took', buildTime, 'ms')
+
 		#debugging info
 		if _debug or self.unit.is_selected:
 			if self.last_target:
@@ -69,7 +66,11 @@ class Immortal:
 			
 	def runList(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
-		if self.closestEnemies.amount > 0:		
+		if self.closestEnemies.amount > 0:
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.				
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
 				self.label = 'Attacking'

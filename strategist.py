@@ -14,7 +14,7 @@ from unit_counters import UnitCounter
 This class makes our build/macro decisions.
 
 '''
-_debug = True
+_debug = False
 
 class Strategist:
 	
@@ -67,7 +67,7 @@ class Strategist:
 		self.star_demand = 0
 		#####
 		self.strat_id = 0
-		self.start_build_order = ['Gateway', 'Gateway', 'Gateway', 'CyberneticsCore']
+		self.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'Gateway']
 		####ramp1 positions.
 		self.ramp1forgePos = None
 		self.ramp1pylon1Pos = None
@@ -111,14 +111,15 @@ class Strategist:
 
 		self.safe_workers()
 
-		if _debug:
-			await self.debug_positions()
-			self.debug_intel()
+		# if _debug:
+		# 	await self.debug_positions()
+		# 	self.debug_intel()
 			#self.debug_map_vals()
 		
 		#if minerals are adding up, something probably happened in stage1, so skip it.
 		if not self.stage1complete and self.game.minerals > 1000:
 			await self.game._client.chat_send(self.unitCounter.gets1failSaying(), team_only=False)
+			print ('stage failed')
 			self.stage1complete = True
 			self.build.can_build_assimilators = True				
 			self.build.can_build_pylons = True	
@@ -156,7 +157,6 @@ class Strategist:
 		if self.stage1complete:
 			self.build.can_build_assimilators = True				
 			self.build.can_build_pylons = True
-			#print ('co')
 			if not self.game.under_attack and self.need_expand():
 				#turn off all queues.
 				self.save_expand()
@@ -166,18 +166,22 @@ class Strategist:
 				self.build_queue()
 				self.train_queue()
 				self.research_queue()
-				
 				self.exp_scout()
 
 	
+	
+	
+
 #########################
 #Starting Dynamic Strats#
 #########################
-
 	async def setup_threebase(self):
-		#build 1st pylon.
-		if not self.build.pylon1_built:
-			self.build.build_pylon1 = True
+		#build pylons
+		if self.game.units(PYLON).amount == 0:
+			self.build.can_build_pylons = True
+		else:
+			self.build.can_build_pylons = False
+			
 
 		#build a nexus at the expansion.
 		if not self.game.under_attack and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
@@ -199,11 +203,10 @@ class Strategist:
 			if len(self.game.units(PROBE)) > 0:
 				await self.game.expand_now()	
 
-	
 		#build pylon 2
-		if self.game.units(NEXUS).amount > 2 and not self.build.pylon4_built and not self.game.rush_detected:
-			self.build.build_pylon4 = True
-		
+		if self.game.units(NEXUS).amount > 2 and not self.game.rush_detected:
+			self.build.can_build_pylons = True
+	
 		#add in stop for easy assim fix.
 		if self.game.units(PYLON).amount < 2:
 			return
@@ -213,24 +216,18 @@ class Strategist:
 		 	self.build.can_build_assimilators = True
 		else:
 		 	self.build.can_build_assimilators = False		
-		#build a core.
+		#build a 2nd gateways.
 		if self.game.units(ASSIMILATOR).exists:
-			self.build.cores = 1
+			self.buildBuilding(1)
 						
 		
-		#build the 3rd production building.
+		#build the core building.
 		if self.game.units(NEXUS).amount > 2 and self.startBuildingCount >= 2 and self.allAllowedQueued:		
-#			self.buildBuilding(2)
-			self.build.gateways = 2
-
-		#build the last base pylon.
-		if self.startBuildingCount >= 3 and not self.build.pylon3_built:
-			self.build.build_pylon3 = True		
+			self.buildBuilding(2)
 
 		#build the 4th production building.
-		if self.startBuildingCount >= 3 and self.allAllowedQueued:
-			self.build.gateways = 3			
-			#self.buildBuilding(3)
+		if self.startBuildingCount >= 3 and self.allAllowedQueued:		
+			self.buildBuilding(3)
 					
 		#go to the main phase
 		if self.startBuildingCount >= 4:
@@ -238,71 +235,45 @@ class Strategist:
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
 			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)	
-			
+
 	async def setup_onebase_production(self):
 		#this opener will build one base with 3 production buildings quickly.
-		#build the first pylon.
-		#build a pylon in the main base.
-		
-		
-		if not self.build.pylon1_built:
-			self.build.build_pylon1 = True
 		#build the 1st gateway.
 		#always have to build a gateway first.
 		self.build.gateways = 1
+		self.build.can_build_pylons = True
 		#after we have a gateway, build 1 gas.
 		#if cannons exists, build 2 assims.
-		if self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount < 1:
+		if self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount < 2:
+			self.build.bypass_assim_wait = True
 			self.build.can_build_assimilators = True
 		else:
-			self.build.can_build_assimilators = False				
-		
+			self.build.can_build_assimilators = False
+			self.build.bypass_assim_wait = False
+		#build a 2nd gateway.
 		if self.startBuildingCount >= 1 and not self.game.rush_detected:
 			#allow the building of the second on list.
-			self.build.cores = 1
-		#build our 2nd pylon.
-		if self.startBuildingCount >= 2 and not self.build.pylon4_built and not self.game.rush_detected:
-			self.build.build_pylon4 = True
+			self.buildBuilding(1)
 		
 		if self.startBuildingCount < 2:
 			return
-		
-
-		#build another assim
-		if self.startBuildingCount >= 2 and self.game.units(ASSIMILATOR).amount < 2:
-		 	self.build.can_build_assimilators = True
-		else:
-		 	self.build.can_build_assimilators = False		
-
-		#build the 3rd production building.
+		#build the cybercore.
 		if self.startBuildingCount >= 2 and self.allAllowedQueued:
-			#self.buildBuilding(2)
-			self.build.gateways = 2
-		
-		#build the 3rd pylon
-		#build our 2nd pylon.
-		if self.startBuildingCount >= 3 and not self.build.pylon3_built and not self.game.rush_detected:
-			self.build.build_pylon3 = True			
-
+			self.buildBuilding(2)
+	
 		#build the 4th production building.
 		if self.startBuildingCount >= 3 and self.allAllowedQueued:		
-			self.build.gateways = 3
+			self.buildBuilding(3)
 
-		
-		if self.startBuildingCount >= 4 and not self.build.pylon5_built and not self.game.rush_detected:
-			self.build.build_pylon5 = True				
-			
 		#just in case
 		if self.startBuildingCount >= 4:
 			self.build.cores = 1
 		
 		#go to the main phase
 		if self.startBuildingCount >= 4:
-			self.build.can_build_pylons = True
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)
-
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)
 
 	async def setup_onebase_defense(self):
 		#build the pylon at the end of the ramp.
@@ -311,67 +282,61 @@ class Strategist:
 			self.pylon1 = True		
 		#build a forge.
 		self.build.forges = 1
-		#build an assim while forge builds
-		if self.game.units(FORGE).exists and self.game.units(ASSIMILATOR).amount < 1:
-			self.build.can_build_assimilators = True
-		else:
-			self.build.can_build_assimilators = False			
+	
 		#build gateway.
 		if self.game.units(FORGE).exists:
 			self.build.gateways = 1
+
+		#build an assim while gateway builds
+		if self.game.units(GATEWAY).exists and self.game.units(ASSIMILATOR).amount < 2:
+			self.build.can_build_assimilators = True
+			self.build.bypass_assim_wait = True
+		else:
+			self.build.can_build_assimilators = False
+			self.build.bypass_assim_wait = False
+			
+			
 		#build cannons
 		if self.game.units(FORGE).ready.exists and self.game.can_afford(PHOTONCANNON) and self.game.units(PHOTONCANNON).amount < 4:
 			if self.build.check_pylon_loc(self.ramp1pylon1Pos, searchrange=3):
 				await self.game.build(PHOTONCANNON, near=self.ramp1pylon1Pos)		
 		
-		#leave here if cannons haven't been built.
-		if self.game.units(PHOTONCANNON).amount < 4:
+		#leave here if 2 cannons haven't been built.
+		if self.game.units(PHOTONCANNON).amount < 2:
 			return
 		
 		#build the 2nd pylon
-		if self.game.units(GATEWAY).exists and not self.build.pylon1_built:
-			self.build.build_pylon1 = True	
-
-		#build a core
-		if self.game.units(GATEWAY).exists and self.build.pylon1_built:
-			self.build.cores = 1
-
-
-		if self.game.units(CYBERNETICSCORE).exists and self.game.units(ASSIMILATOR).amount < 2:
-			self.build.can_build_assimilators = True
-		else:
-			self.build.can_build_assimilators = False
-		#build building 3
-		if self.game.units(CYBERNETICSCORE).exists and self.game.units(ASSIMILATOR).amount > 1 and self.allAllowedQueued:
-			self.build.gateways = 2
+		if self.game.units(GATEWAY).exists:
+			self.build.can_build_pylons = True
 			
-		#build a 2nd pylon in the main base.
-		if self.startBuildingCount >= 3 and not self.build.pylon4_built:
-			self.build.build_pylon4 = True
+		#leave here if 4 cannons haven't been built.
+		if self.game.units(PHOTONCANNON).amount < 4:
+			return
 
+
+		#build a 2nd building
+		if self.game.units(GATEWAY).exists:
+			self.buildBuilding(1)
+
+		#build building 3
+		if self.startBuildingCount >= 2 and self.game.units(ASSIMILATOR).amount > 1 and self.allAllowedQueued:
+			self.buildBuilding(2)
+			
 		#build building 4
 		if self.startBuildingCount >= 3 and self.allAllowedQueued:
-			self.build.gateways = 3	
+			self.buildBuilding(3)
 
-		#build a 3rd pylon in the main base.
-		if self.startBuildingCount >= 4 and not self.build.pylon3_built:
-			self.build.build_pylon3 = True
-
-		#just in case
+		#finish
 		if self.startBuildingCount >= 4:
 			self.build.cores = 1
-		
-		#go to the main phase
-		if self.startBuildingCount >= 4 and self.build.pylon3_built:
 			self.build.can_build_pylons = True
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)			
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)
 
 	async def setup_twobase_production(self):
 		#build 1st pylon.
-		if not self.build.pylon1_built:
-			self.build.build_pylon1 = True
+		self.build.can_build_pylons = True
 		#build the 1st gateway.
 		self.build.gateways = 1
 		if self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount < 1:
@@ -383,40 +348,36 @@ class Strategist:
 		if not self.game.under_attack and self.game.units(GATEWAY).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
 			if len(self.game.units(PROBE)) > 0:
 				await self.game.expand_now()		
-		#build pylon 2
-		if self.game.units(NEXUS).amount > 1 and not self.build.pylon4_built and not self.game.rush_detected:
-			self.build.build_pylon4 = True
+
+		#leave until nexus is built.
+		if self.game.units(NEXUS).amount < 2:
+			return
+
+
 		#build 1st assims
 		if self.game.units(PYLON).amount > 1 and self.game.units(ASSIMILATOR).amount < 2:
 		 	self.build.can_build_assimilators = True
 		else:
 		 	self.build.can_build_assimilators = False		
-		#build a core.
+		#build a 2nd gateway.
 		if self.game.units(ASSIMILATOR).exists:
-			self.build.cores = 1
+			self.buildBuilding(1)
 
-		
-		#build the 3rd production building.
+		#build the core building.
 		if self.startBuildingCount >= 2 and self.allAllowedQueued:		
-#			self.buildBuilding(2)
-			self.build.gateways = 2
-
-		#build the last base pylon.
-		if self.startBuildingCount >= 3 and not self.build.pylon3_built:
-			self.build.build_pylon3 = True		
+			self.buildBuilding(2)
 
 		#build the 4th production building.
 		if self.startBuildingCount >= 3 and self.allAllowedQueued:
-			self.build.gateways = 3			
-			#self.buildBuilding(3)
+			self.buildBuilding(3)
 					
 		#go to the main phase
 		if self.startBuildingCount >= 4:
 			self.build.can_build_pylons = True
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)	
-		
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)	
+
 	async def setup_twobase_defense(self):
 		#build the pylon that the cannons will be placed near.
 		if not self.game.under_attack and not self.pylon1 and self.game.can_afford(PYLON):
@@ -450,52 +411,41 @@ class Strategist:
 	
 		#build our next production building.
 		if self.startBuildingCount >= 1:
-			#self.buildBuilding(1)
-			self.build.cores = 1
-
+			self.buildBuilding(1)
+			
 		#leave for easy assim fix.
-		if self.game.units(CYBERNETICSCORE).amount < 1:
+		if self.startBuildingCount < 2:
 			return
 
 
 		#if cannons exists, build 2 assims.
-		if self.game.units(CYBERNETICSCORE).amount > 0 and self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount < 2:
+		if self.startBuildingCount >= 2 and self.game.units(ASSIMILATOR).amount < 2:
 			self.build.can_build_assimilators = True
 		else:
 			self.build.can_build_assimilators = False					
 		
 		#build a pylon in the main base.
-		if self.startBuildingCount >= 2 and not self.build.pylon1_built:
-			self.build.build_pylon1 = True		
+		if self.startBuildingCount >= 2:
+			self.build.can_build_pylons = True	
 			
-		#build the 3rd production building.
+		#build the core building.
 		if self.startBuildingCount >= 2 and self.allAllowedQueued:		
-			#self.buildBuilding(2)
-			self.build.gateways = 2
+			self.buildBuilding(2)
 			
-		#build a 2nd pylon in the main base.
-		if self.startBuildingCount >= 3 and not self.build.pylon4_built:
-			self.build.build_pylon4 = True				
-		
 		#build some shields.
-		if self.build.pylon4_built and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 0 and self.startBuildingCount >= 3:
+		if len(self.game.units(PYLON)) > 1 and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 0 and self.startBuildingCount >= 3:
 			#build shield 1.
 			await self.build.build_shield_battery(self.r2battery1Pos)
 
 		#build some shields.
-		if self.build.pylon4_built and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 1 and self.startBuildingCount >= 3:
+		if len(self.game.units(PYLON)) > 1 and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 1 and self.startBuildingCount >= 3:
 			#build shield 2.
 			await self.build.build_shield_battery(self.r2battery1Pos)
 						
 			
 		#build the 4th production building.
-		if self.startBuildingCount >= 3 and self.allAllowedQueued:
-			#self.buildBuilding(3)
-			self.build.gateways = 3
-			
-		#build the last base pylon.
-		if self.startBuildingCount >= 4 and not self.build.pylon3_built:
-			self.build.build_pylon3 = True			
+		if self.startBuildingCount >= 3 and self.allAllowedQueued and self.game.units(SHIELDBATTERY).amount > 1:
+			self.buildBuilding(3)	
 		
 		#just in case
 		if self.startBuildingCount >= 4:
@@ -507,6 +457,8 @@ class Strategist:
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
 			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)	
+
+		
 
 		
 
@@ -606,12 +558,15 @@ class Strategist:
 	def attack_command(self):
 		if self.game.defend_only:
 			#currently in defend mode, don't attack until we have 20% more force than them.
-			if self.army_power > 1 and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
+			if self.army_power > 40 and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
 				self.game.defend_only = False
 		else:
-			#currently attacking, don't defend unless we have less than 5% force than enemy.
-			if (self.army_power < (self.enemy_power - (self.enemy_power * .05)) or self.army_power < 1) and self.game.supply_used < 190 and not self.game.under_attack:
+			#currently attacking, don't defend unless we have less force than enemy.
+			if (self.army_power < self.enemy_power or self.army_power < 40) and self.game.supply_used < 190 and not self.game.under_attack:
 				self.game.defend_only = True
+		#if all nexus are dead, might as well just attack and hope for the best.
+		if self.game.units(NEXUS).amount == 0:
+			self.game.defend_only = False
 		#self.game.defend_only = True		
 
 
@@ -644,166 +599,23 @@ class Strategist:
 #####################
 
 	async def debug_positions(self):
-		#base pylon 1 position. 
-		self.game._client.debug_sphere_out(self.build.pylon1Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P1', self.build.pylon1Loc.position)
-
-		#base pylon 2 position. 
-		self.game._client.debug_sphere_out(self.build.pylon2Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P2', self.build.pylon2Loc.position)
-
-		#base pylon 3 position. 
-		self.game._client.debug_sphere_out(self.build.pylon3Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P3', self.build.pylon3Loc.position)
-
-		#base pylon 4 position. 
-		self.game._client.debug_sphere_out(self.build.pylon4Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P4', self.build.pylon4Loc.position)		
-
-		#base pylon 5 position. 
-		self.game._client.debug_sphere_out(self.build.pylon5Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P5', self.build.pylon5Loc.position)	
-		
-		#base pylon 6 position. 
-		self.game._client.debug_sphere_out(self.build.pylon6Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P6', self.build.pylon6Loc.position)		
-
-		#base pylon 7 position. 
-		self.game._client.debug_sphere_out(self.build.pylon7Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P7', self.build.pylon7Loc.position)			
-		
-		#base pylon 8 position. 
-		self.game._client.debug_sphere_out(self.build.pylon8Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P8', self.build.pylon8Loc.position)		
-
-		#base pylon 9 position. 
-		self.game._client.debug_sphere_out(self.build.pylon9Loc.position, 1, Point3((66, 69, 244))) #blue
-		self.game._client.debug_text_3d('P9', self.build.pylon9Loc.position)			
-		
 		#show defensive position.
 		if self.game.defensive_pos:
 			self.game._client.debug_sphere_out(self.game.turn3d(self.game.defensive_pos.position), 1, Point3((132, 0, 66))) #purple
 			self.game._client.debug_text_3d('DP', self.game.turn3d(self.game.defensive_pos.position))
 		
-		
 		#show main ramp.
-		
 		self.game._client.debug_sphere_out(self.ramp1pylon1Pos.position, 1, Point3((244, 66, 125))) #pink
 		self.game._client.debug_text_3d('Pylon1', self.ramp1pylon1Pos.position)
 
 		self.game._client.debug_sphere_out(self.ramp1forgePos.position, 1, Point3((244, 66, 125))) #pink
 		self.game._client.debug_text_3d('Forge', self.ramp1forgePos.position)		
 
-		#cannons
-		
-		self.game._client.debug_sphere_out(self.cannon1Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon1', self.cannon1Pos.position)
-
-		self.game._client.debug_sphere_out(self.cannon2Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon2', self.cannon2Pos.position)			
-		
-		self.game._client.debug_sphere_out(self.cannon3Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon3', self.cannon3Pos.position)
-
-		self.game._client.debug_sphere_out(self.cannon4Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon4', self.cannon4Pos.position)
-
-		self.game._client.debug_sphere_out(self.cannon5Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon5', self.cannon5Pos.position)
-
-		self.game._client.debug_sphere_out(self.cannon6Pos.position, 1, Point3((155, 255, 25))) #green
-		self.game._client.debug_text_3d('Cannon6', self.cannon6Pos.position)
-	
-		#shield batteries
-		self.game._client.debug_sphere_out(self.battery1Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('Battery1', self.battery1Pos.position)
-		
-		self.game._client.debug_sphere_out(self.battery2Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('Battery2', self.battery2Pos.position)
-		
-		self.game._client.debug_sphere_out(self.battery3Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('Battery3', self.battery3Pos.position)	
-
-		#shield batteries
-		self.game._client.debug_sphere_out(self.r2battery1Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('R2Battery1', self.r2battery1Pos.position)
-		
-		self.game._client.debug_sphere_out(self.r2battery2Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('R2Battery2', self.r2battery2Pos.position)
-		
-		self.game._client.debug_sphere_out(self.r2battery3Pos.position, 2, Point3((155, 155, 25)))
-		self.game._client.debug_text_3d('R2Battery3', self.r2battery3Pos.position)	
-
-		
-		bot_center = self.game.main_ramp_bottom_center
-		bot_center3d = self.game.turn3d(bot_center)
-		top_center3d = self.game.turn3d(self.game.main_base_ramp.top_center)
-
-		#self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
-		# self.game._client.debug_sphere_out(bot_center3d.position, 1, (155, 255, 25)) #green
-		# self.game._client.debug_text_3d('bcenter', bot_center3d.position)
-		# 
-		# self.game._client.debug_sphere_out(top_center3d.position, 1, (244, 66, 125)) #pink
-		# self.game._client.debug_text_3d('tcenter', top_center3d.position)		
-
-		#print the 2nd ramp if it exists.
-		# if self.ramp2:
-		# 	ramp_bot_center = self.findRampBottomCenter(self.ramp2)
-		# 	ramp_center3d = self.game.turn3d(self.ramp2.top_center)
-		# 	self.game._client.debug_sphere_out(ramp_center3d.position, 1, (244, 66, 125)) #pink
-		# 	self.game._client.debug_text_3d('2nd ramp tcenter', ramp_center3d.position)
-		# 	ramp_bot_center3d = self.game.turn3d(ramp_bot_center)									 
-		# 	self.game._client.debug_sphere_out(ramp_bot_center3d.position, 1, (155, 255, 25)) #green	
-		# 	self.game._client.debug_text_3d('2nd ramp bcenter', ramp_bot_center3d.position)
-		#show buildings
 		for ramp in self.game.game_info.map_ramps:
 			self.game._client.debug_sphere_out(self.game.turn3d(ramp.top_center), 1, (252, 248, 0)) #yellow
 		
 		
-		
-		pylon1_pos3d = self.game.turn3d(self.pylon1Pos)
-		forge_pos3d = self.game.turn3d(self.forgePos)
-
-		self.game._client.debug_sphere_out(self.pylon1Pos.position, 1, (252, 248, 0)) #yellow
-		self.game._client.debug_text_3d('pylon1', pylon1_pos3d.position)
-		
-		self.game._client.debug_sphere_out(forge_pos3d.position, 2, (132, 0, 66)) #purple
-		self.game._client.debug_text_3d('forge', forge_pos3d.position)	
-
-		if self.game.units(NEXUS).amount > 780:
-			expanse = await self.game.get_next_expansion()
-			
-			exppos = self.game.turn3d(expanse)
-			self.game._client.debug_sphere_out(exppos.position, 1, (132, 0, 66)) #yellow
-			self.game._client.debug_text_3d('expanse', exppos.position)
-			
-			
-			mf = self.game.state.mineral_field.closer_than(20, expanse)
-			vf = self.game.state.vespene_geyser.closer_than(20, expanse)
-			center_pos3 = Point2((sum([item.position.x for item in mf]) / len(mf), \
-								sum([item.position.y for item in mf]) / len(mf)))
 	
-			center_pos2 = Point2((sum([item.position.x for item in vf]) / len(vf), \
-							sum([item.position.y for item in vf]) / len(vf)))
-			
-			center_pos = Point2(((center_pos3.position.x + center_pos2.position.x) / 2, \
-								(center_pos3.position.y + center_pos2.position.y) / 2))
-	
-	
-			exppos2= self.game.turn3d(center_pos2)
-			self.game._client.debug_sphere_out(exppos2.position, 1, (155, 255, 25)) #yellow
-			self.game._client.debug_text_3d('center ves', exppos2.position)
-	
-	
-			exppos2= self.game.turn3d(center_pos)
-			self.game._client.debug_sphere_out(exppos2.position, 1, (155, 255, 25)) #yellow
-			self.game._client.debug_text_3d('center', exppos2.position)
-			
-			#find closest mineral field.
-			clmin = mf.closest_to(center_pos)
-			exppos2= self.game.turn3d(clmin)
-			self.game._client.debug_sphere_out(exppos2.position, 1, (244, 66, 125)) #yellow
-			self.game._client.debug_text_3d('closest', exppos2.position)			
 				
 	def debug_intel(self):
 		xpos = 0.005
@@ -926,6 +738,7 @@ class Strategist:
 			i += 1
 
 	def buildBuilding(self, num):
+		#num -= 1
 		#grab the correct item, parse the building type, and count how many of them there should be at that point.
 		if self.start_build_order[num] == 'Gateway':
 			self.build.gateways = self.countBuildings(num, 'Gateway')
@@ -937,8 +750,16 @@ class Strategist:
 			self.build.roboticsfacility = self.countBuildings(num, 'RoboticsFacility')
 	
 		elif self.start_build_order[num] == 'CyberneticsCore':
-			#self.build.can_build_assimilators = True
 			self.build.cores = 1
+			
+		elif self.start_build_order[num] == 'RoboticsBay':
+			self.build.roboticsbay = 1
+			
+		elif self.start_build_order[num] == 'FleetBeacon':
+			self.build.fleetbeacons = 1
+			
+		elif self.start_build_order[num] == 'TwilightCouncil':
+			self.build.twilights = 1			
 
 	def rotate(self, origin, point, angle):
 		qx = origin.x + math.cos(angle) * (point.x - origin.x) - math.sin(angle) * (point.y - origin.y)
@@ -973,13 +794,7 @@ class Strategist:
 		self.ramp1pylon1Pos = self.game.turn3d(self.game.main_base_ramp.top_center.towards(self.game.main_base_ramp.bottom_center, -5.5))
 		#self.ramp1forgePos = self.game.turn3d(self.game.game_info.player_start_location.towards(self.game.main_base_ramp.top_center, 6))
 		#cannon1pos
-		# self.cannon1Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -3.5), 1.5))
-		# self.cannon2Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -3.5), 4.5))
-		# self.cannon3Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -4.5), 1.8))
-		# self.cannon4Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -4.5), 4.0))
-		# self.cannon5Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -5.5), 2.1))
-		# self.cannon6Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -5.5), 3.7))
-		# 
+
 		self.cannon1Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -1.5), 1))
 		self.cannon2Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -1.5), 2))
 		self.cannon3Pos = self.game.turn3d(self.rotate(self.ramp1pylon1Pos.position, self.ramp1pylon1Pos.towards(self.game.main_base_ramp.bottom_center, -1.5), 3))
@@ -1104,7 +919,7 @@ class Strategist:
 
 	def detect_reaper_cheese(self):
 		#detect if the reaper is near the starting nexus, and if it is, set to true and then build cannons.
-		if not self.game.reaper_cheese and self.game.known_enemy_units.of_type([REAPER,BANSHEE]).closer_than(20, self.game.start_location):
+		if not self.game.reaper_cheese and self.game.known_enemy_units.of_type([REAPER,BANSHEE]).closer_than(20, self.game.start_location).amount > 1:
 			self.game.reaper_cheese = True
 			#print ('reaper/banshee cheese detected')
 			self.build.forges = 1
@@ -1112,12 +927,17 @@ class Strategist:
 	def detect_rush(self):
 		#print (self.game.units().not_structure.exclude_type(PROBE).amount, self.game.known_enemy_units.exists)
 		detected = False
-		if self.game.units.not_structure.exclude_type(PROBE).amount < 1 and self.game.units(PHOTONCANNON).ready.amount < 1 and self.game.units.structure.amount < 5:
+		if self.game.units.not_structure.exclude_type(PROBE).amount < 3 and self.game.units(PHOTONCANNON).ready.amount < 3 and self.game.units.structure.amount < 5:
 			for nexus in self.game.units(NEXUS):
 				if not self.game.rush_detected and self.game.known_enemy_units.not_flying.closer_than(20, nexus).amount > 1:
 					detected = True
 		if detected:
 			self.game.rush_detected = True
+			#drop opening strats, just go into auto mode.
+			
+			self.stage1complete = True
+			self.build.can_build_assimilators = True				
+			self.build.can_build_pylons = True			
 		else:
 			self.game.rush_detected = False
 
@@ -1174,9 +994,9 @@ class Strategist:
 				#obj = self.game._pb_objects.get(worker.tag)
 				if ct == 0:
 					obj.scout = True
-				if ct > 0 and ct < 5:
+				if ct > 0 and ct < 3:
 					obj.collect_only = True
-				if ct >= 5:
+				if ct >= 3:
 					break
 				ct += 1
 			self.worker_tag = True
@@ -1189,32 +1009,12 @@ class Strategist:
 		
 
 	def need_expand(self):
-		if self.game.buildingList.underAttack:
-			return False
-		
-		if int(self.game.time / 60) > 2 and self.game.minerals < 1250 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 3 minutes.
+		# if self.game.buildingList.underAttack:
+		# 	return False
+		if self.game.time > 120 and self.game.minerals < 1250 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 2 minutes.
 			if not self.game.buildingList.workersRequested:
 				return True
 		return False
-
-	def need_expand_old(self):
-		if self.game.buildingList.underAttack:
-			return False
-		
-		if int(self.game.time / 60) > 2 and self.game.minerals < 1250 and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).ready.exists:   #don't save in the first 3 minutes.
-			workers_needed = 0
-			for nexus in self.game.units(NEXUS).ready:
-				workers_needed += nexus.ideal_harvesters - nexus.assigned_harvesters
-
-			for assim in self.game.units(ASSIMILATOR).ready:
-				workers_needed += assim.ideal_harvesters - assim.assigned_harvesters
-
-
-			if workers_needed <= 0: 
-				#we can expand
-				return True
-		return False
-	
 	
 	def army_score(self):
 		protoss_units = [COLOSSUS, ZEALOT, STALKER, HIGHTEMPLAR, DARKTEMPLAR, SENTRY, PHOENIX, CARRIER, VOIDRAY, WARPPRISM, OBSERVER, IMMORTAL, ADEPT, ORACLE, TEMPEST, DISRUPTOR, ARCHON]
@@ -1459,7 +1259,7 @@ class Strategist:
 			if building == 'Gateway':
 				if self.game.units(WARPGATE).exists:
 					building_id = WARPGATE
-			if not self.game.units(building_id).exists:
+			if not self.game.units(building_id).ready.exists:
 				#doesn't exist, can't build it yet.
 				return False
 		return True
@@ -1494,8 +1294,6 @@ class Strategist:
 
 
 	def calc_starter_counters(self, inc_units):
-		
-		
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1519,19 +1317,7 @@ class Strategist:
 		buildings_needed = {}
 		demand_dict = {}
 		for name, count in self.starting_army.items():
-			# if not self.unitCounter.getUnitReqs(name):
-			# 	print ('unit req not found', name)
-			# req_buildings = self.unitCounter.getUnitReqs(name)
-			# madeit = 0
-			# for building in req_buildings:
-			# 	building_id = self.unitCounter.getUnitID(building)
-			# 	#doesn't exist, add to build queue.
-			# 	if not buildings_needed.get(building):
-			# 		buildings_needed.update({building:1})
-			# 	else:
-			# 		val = buildings_needed.get(building) + 1
-			# 		buildings_needed.update({building:val})
-						
+			#print (name, count)
 			#find the building that makes this unit and add into the demand.
 			building = self.unitCounter.getUnitTrainer(name)
 			if not demand_dict.get(building):
@@ -1543,19 +1329,39 @@ class Strategist:
 		most_requested = 'Gateway'
 		most_requested_count = 0
 		for building, count in demand_dict.items():
+			#print (building, count)
 			if count > most_requested_count:
 				most_requested_count = count
 				most_requested = building
-		build_order = []
+		
+		most_requested2 = most_requested
+		if most_requested == 'RoboticsFacility' and not self.starting_army.get('Immortal'):
+			most_requested2 = 'RoboticsBay'
+		
+		if most_requested == 'Stargate':
+			if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
+				most_requested2 = 'FleetBeacon'
+		
+		# if most_requested == 'Stargate':
+		# 	tech_up = False
+		# 	if self.starting_army.get('Tempest'):
+		# 		tech_up = True
+		# 		if self.starting_army.get('VoidRay') and self.starting_army.get('VoidRay') > self.starting_army.get('Tempest'):
+		# 			tech_up = False
+		# 		if self.starting_army.get('Phoenix') and self.starting_army.get('Phoenix') > self.starting_army.get('Tempest'):
+		# 			tech_up = False
+		# 		if tech_up:
+		# 			most_requested2 = 'FleetBeacon'
 		if most_requested == 'Gateway':
-			build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'Gateway']
-		else:
-			build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested]
-		self.start_build_order = build_order
+			most_requested2 = 'TwilightCouncil'
+
+		self.start_build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested2]
+		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
+			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
+		#print (self.start_build_order)
 		
-		#print (demand_dict)
-		#print ('build', self.start_build_order)
 		
+
 		
 		
 
@@ -1752,7 +1558,8 @@ class Strategist:
 			#check if already exists, if it doesn't, add it.
 			if not self.enemy_intel.get(enemy.tag):
 				self.enemy_intel.update({enemy.tag:enemy.name})
-				if enemy.name == 'PhotonCannon' or enemy.name == 'MissileTurret' or enemy.name == 'SpineCrawler' or enemy.name == 'SporeCrawler':
+				#if enemy.name == 'PhotonCannon' or enemy.name == 'MissileTurret' or enemy.name == 'SpineCrawler' or enemy.name == 'SporeCrawler':
+				if enemy.is_structure:
 					self.cannonReplace(enemy)
 					
 		if new_unit:
@@ -1765,7 +1572,7 @@ class Strategist:
 		if not self.worker_detected and self.game.time < 180:
 			#check for the single worker and assign 4 workers to attack it.
 			if self.game.known_enemy_units.of_type([PROBE,DRONE,SCV,PHOTONCANNON,REAPER]).closer_than(25, self.game.game_info.player_start_location).amount == 1:
-				#grab the 4 workers closest to the enemy that aren't marked as collectors or scouts
+				#grab the 1 worker closest to the enemy that aren't marked as collectors or scouts
 				defenders = 0
 				self.worker_detected = True
 				#for tag, obj in self.game._pb_objects.items():
@@ -1775,7 +1582,7 @@ class Strategist:
 						obj.removeGatherer()
 						
 						defenders += 1
-						if defenders > 3:
+						if defenders > 1:
 							break
 		elif self.worker_detected:
 			#send workers back to work when it's over.
@@ -1786,20 +1593,6 @@ class Strategist:
 					obj.lite_defender = False		
 			
 
-	def detect_rush_working(self):
-		#print (self.game.units().not_structure.exclude_type(PROBE).amount, self.game.known_enemy_units.exists)
-		detected = False
-		if self.game.time < 180 and self.game.units(PHOTONCANNON).ready.amount <= 3:
-			for nexus in self.game.units(NEXUS):
-				if not self.game.rush_detected and self.game.units.not_structure.exclude_type(PROBE).amount < 1 and self.game.known_enemy_units.ready.not_structure.not_flying.closer_than(20, nexus).amount > 1:
-					detected = True
-				else:
-					if self.game.units().not_structure.exclude_type(PROBE).amount < 1 and self.game.known_enemy_units.ready.not_structure.not_flying.closer_than(25, nexus).amount > 1:			
-						detected = True
-		if detected:
-			self.game.rush_detected = True
-		else:
-			self.game.rush_detected = False
 					
 	def findUnworkedAssimilators(self):
 		return self.game.units(ASSIMILATOR).ready.filter(lambda x:x.vespene_contents > 0 and x.assigned_harvesters < 3)
@@ -1843,7 +1636,7 @@ class Strategist:
 
 	@property
 	def startBuildingCount(self) -> int:
-		return self.game.units(CYBERNETICSCORE).amount + self.game.productionBuildings		
+		return self.game.units(CYBERNETICSCORE).amount + self.game.productionBuildings + self.game.units(ROBOTICSBAY).amount + self.game.units(FLEETBEACON).amount + self.game.units(TWILIGHTCOUNCIL).amount
 
 	@property
 	def allAllowedQueued(self) -> bool:

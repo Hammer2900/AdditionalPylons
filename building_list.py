@@ -1,5 +1,6 @@
 import sc2
 from sc2.constants import *
+from sc2.position import Point2, Point3
 
 #our own classes
 from gateway import Gateway as gwControl
@@ -72,9 +73,6 @@ class BuildingList():
 		elif unit.name == 'TemplarArchive':
 			obj =taControl(unit)
 			self.building_objects.update({unit.tag:obj})
-						
-			
-			
 		#else:
 		# 	print ('Unit Created:', unit.name, unit.tag)
 		
@@ -105,6 +103,14 @@ class BuildingList():
 		if len(baselist) > 0:
 			return True
 		return False
+	
+	@property
+	def chargeAvail(self) -> bool:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Twilight' and v._charge_researched }
+		if len(baselist) > 0:
+			return True
+		return False
+
 
 	@property
 	def extendedLanceAvail(self) -> bool:
@@ -136,11 +142,60 @@ class BuildingList():
 	
 	@property
 	def allQueued(self) -> bool:
+	
 		blist = ['RoboticsFacility', 'Stargate', 'Warpgate', 'Gateway']
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name in blist and not v.inQueue }
 		if len(baselist) > 0:
 			return False
 		return True
+
+	@property
+	def pylonsRequested(self) -> int:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.pylonsRequested > 0 }
+		pyr = 0
+		for k, unitObj in baselist.items():
+			pyr += unitObj.pylonsRequested
+		return pyr
+
+	@property
+	def cannonsRequested(self) -> int:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.cannonsRequested > 0 }
+		pyr = 0
+		for k, unitObj in baselist.items():
+			pyr += unitObj.cannonsRequested
+		return pyr
+	
+	@property
+	def shieldsRequested(self) -> int:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.shieldsRequested > 0 }
+		pyr = 0
+		for k, unitObj in baselist.items():
+			pyr += unitObj.shieldsRequested
+		return pyr
+
+	@property
+	def nextPylonLoc(self) -> Point2:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.pylonsRequested > 0 }
+		for k, unitObj in baselist.items():
+			return unitObj.nextPylonPosition
+
+	@property
+	def nextFreePylonLoc(self) -> Point2:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.pylonsRequested == 0 and v.next_pylon_location }
+		for k, unitObj in baselist.items():
+			return unitObj.nextPylonPosition
+		
+	@property
+	def nextCannonLoc(self) -> Point2:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.cannonsRequested > 0 }
+		for k, unitObj in baselist.items():
+			return unitObj.nextCannonPosition
+
+	@property
+	def nextShieldLoc(self) -> Point2:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.shieldsRequested > 0 }
+		for k, unitObj in baselist.items():
+			return unitObj.nextShieldPosition
 
 
 

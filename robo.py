@@ -51,10 +51,11 @@ class Robo:
 		
 	def trainObservers(self):
 		#train observers if under the min.
-		if self.game.units(OBSERVER).amount < 2 and not self.game.under_attack:
+		if self.game.can_spend and not self.game.under_attack and self.game._strat_manager.army_power > 40 and self.game.units(OBSERVER).amount < 2:
 			self.game.combinedActions.append(self.unit.train(OBSERVER))
 			self.game.can_spend = False
 			return True
+		return False
 
 	
 	def trainUnit(self):
@@ -68,6 +69,7 @@ class Robo:
 			self.game.combinedActions.append(self.unit.train(self.unitCounter.getUnitID(trainee)))
 			self.game.can_spend = False
 			return True
+		return False
 
 		
 	def resourcesSaved(self):

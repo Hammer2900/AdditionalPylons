@@ -59,6 +59,9 @@ class Probe:
 		
 	def make_decision(self, game, unit):
 		self.game = game
+		if not self.rush_defender and not self.lite_defender and self.game.last_iter % 5 != 0:
+			return #don't need to run so often.
+
 		self.unit = unit
 		self.saved_position = unit.position
 		self.assigned = Counter(self.game._worker_assignments.values())
@@ -97,6 +100,11 @@ class Probe:
 		self.checkAssim()
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if not self.collect_only and self.closestEnemies.amount > 0:
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
+			
 			#always attack if we can.
 			if self.game.attack(self):
 				self.removeGatherer()
@@ -147,28 +155,50 @@ class Probe:
 		if self.OverMine():
 			self.label = 'OverMining'
 			return
+		
+		if self.LongDistanceMine():
+			self.label = 'Long Distance Mining'
+			return
 
 		self.label = 'Need Orders'
 		
 	def scoutList(self):
-		#if self.game.canEscape(self.unit):
-			#1b priority is to save our butts if we can because we have to stop to attack.
-		#check if we are being asked to build something, if so just leave.
-		#mine until it's 20 seconds of game time.
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+			
+		#mine until it's 10 seconds of game time.
 		if self.game.time < 10:
 			self.label = 'Temp Mining'
 			self.last_action = 'miner'
-			return #building			
+			return #building
 		
+		#check if we are being asked to build something, if so just build it.
 		if not self.knownActions():
 			self.label = 'Building'
 			self.last_action = 'build'
 			return #building
 
-
-		if self.game.searchEnemies(self):
-			self.label = 'Search'
-			return #looking for targets
+		#make sure we have scouted the enemy base.
+		if self.searchBase():
+			return
+		#if it's under 3 minutes in the game, check for proxies near our base.
+		if self.searchProxies():
+			self.label = 'Searching for Enemy Proxies'
+			return
+		#after 3 minutes, start to place proxy pylons.
+		if self.placeProxies():
+			self.label = 'Placing Proxy Pylon'
+			return
+		#after 3 minutes, scout the enemy.
+		if self.searchEnemy():
+			self.label = 'Scouting the Enemy'
+			return
+		# 
+		# if self.game.searchEnemies(self):
+		# 	self.label = 'Search'
+		# 	return #looking for targets
 
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:			
@@ -176,13 +206,6 @@ class Probe:
 				self.label = 'Retreating Safe'
 				#print ('triggered')
 				return #staying alive
-
-		#go to the first enemy expansion and put a pylon on it.
-		# if self.placeProxyPylon():
-		# 	self.label = 'Moving to Proxy Location'
-		# 	return #moving to proxy.
-
-		#7 find the enemy
 
 
 	def clearWorkers(self):
@@ -241,18 +264,148 @@ class Probe:
 		if self.game.units.of_type([PROBE,SCV,DRONE,REAPER]).amount == 0:
 			self.rush_defender = False
 	
-		# if self.game.searchEnemies(self):
-		# 	self.label = 'Search'			
-		# 	return #looking for targets	
+
+
+####################
+#Scouting Functions#
+####################
+	def searchBase(self):
+		#search for enemy base
+		if self.unit.is_moving or self.unit.is_attacking:
+			return True #moving somewhere already
 		
+		startPos = random.choice(self.game.enemy_start_locations)
+		if self.unit.distance_to(startPos) > 10 and not self.game.base_searched:
+			if self.checkNewAction('move', startPos[0], startPos[1]):
+				self.game.combinedActions.append(self.unit.move(startPos))
+			self.last_target = Point3((startPos.position.x, startPos.position.y, self.game.getHeight(startPos.position)))
+			self.label = 'Searching for Enemy Base'
+			return True
+		else:
+			self.game.base_searched = True
+
+	def searchProxies(self):
+		#if it's more than 2:20 minutes into the game, don't search anymore.
+		if self.game.time > 140:
+			return False
+		
+		if self.unit.is_moving or self.unit.is_attacking:
+			return True #moving somewhere already		
+		#search random among the nearest 10 expansion slots to unit.
+		locations = []
+		knockoff = 2
+		startloc = self.game.game_info.player_start_location
+		for possible in self.game.expansion_locations:
+			if not self.game.units().of_type([NEXUS,PROBE]).closer_than(6, possible).exists:
+				
+				#distance = sqrt((possible[0] - startloc.position[0])**2 + (possible[1] - startloc.position[1])**2)
+				distance = startloc.distance_to(possible.position)
+				locations.append([distance, possible])
+			else:
+				knockoff += 1				
+		locations = sorted(locations, key=itemgetter(0))
+		#add duplicate locations to add weight towards enemy base.
+		totalLocs = int(len(self.game.expansion_locations) / 2) - knockoff
+		#print (totalLocs, knockoff)
+		#only use the ones near our base.
+		del locations[totalLocs:]
+		nextPos = random.choice(locations)[1]
+		if self.checkNewAction('move', nextPos[0], nextPos[1]):
+			self.game.combinedActions.append(self.unit.move(nextPos))
+		self.last_target = Point3((nextPos.position.x, nextPos.position.y, self.game.getHeight(nextPos.position)))
+		self.label = 'Searching for Enemy Proxies'
+		return True		
+			
+	def placeProxies(self):
+		if  self.game.time < 12240 or not self.game.can_spend or self.game._strat_manager.saving or self.game.buildingList.pylonsRequested:
+			return False
+			
+		if self.unit.is_moving or self.unit.is_attacking:
+			return True #moving somewhere already		
+		#search random among the nearest 10 expansion slots to unit.
+		locations = []
+		knockoff = 2
+		startloc = self.game.game_info.player_start_location
+		for possible in self.game.expansion_locations:
+			#if not self.game.units().of_type([NEXUS,PROBE]).closer_than(6, possible).exists:
+			if not self.game.known_enemy_units.closer_than(6, possible).exists:
+				distance = sqrt((possible[0] - startloc.position[0])**2 + (possible[1] - startloc.position[1])**2)
+				locations.append([distance, possible])
+			else:
+				knockoff += 1
+		locations = sorted(locations, key=itemgetter(0), reverse=True)
+		#add duplicate locations to add weight towards enemy base.
+		totalLocs = int(len(self.game.expansion_locations) / 2) - knockoff
+		#print (totalLocs, knockoff)
+		#only use the ones near our base.
+		del locations[totalLocs:]
+		if len(locations) == 0:
+			return False
+		nextPos = random.choice(locations)[1]
+		#check to see if a pylon already exists at this locatoin.
+		if self.game.units(PYLON).closer_than(6, nextPos).exists:
+			return False
+		
+		if not self.game.can_afford(PYLON):
+			return False
+		
+		if self.checkNewAction('pylon', nextPos.position.x, nextPos.position.y):
+			self.game.combinedActions.append(self.unit.build(PYLON, nextPos.position))
+		self.last_target = Point3((nextPos.position.x, nextPos.position.y, self.game.getHeight(nextPos.position)))
+		self.label = 'Placing a Proxy'
+		return True	
+	
+	def searchEnemy(self):
+		
+		if self.unit.is_moving or self.unit.is_attacking:
+			return True #moving somewhere already		
+		#search random among the nearest 10 expansion slots to unit.
+		locations = []
+		knockoff = 0
+		startloc = self.game.game_info.player_start_location
+		for possible in self.game.expansion_locations:
+			if not self.game.known_enemy_units.closer_than(6, possible).exists:
+				distance = sqrt((possible[0] - startloc.position[0])**2 + (possible[1] - startloc.position[1])**2)
+				locations.append([distance, possible])
+			else:
+				knockoff += 1
+		locations = sorted(locations, key=itemgetter(0), reverse=True)
+		#add duplicate locations to add weight towards enemy base.
+		totalLocs = int(len(self.game.expansion_locations) / 2) - knockoff
+		#print (totalLocs, knockoff)
+		#only use the ones near our base.
+		del locations[totalLocs:]
+		if len(locations) > 0:
+			nextPos = random.choice(locations)[1]
+			if self.checkNewAction('move', nextPos[0], nextPos[1]):
+				self.game.combinedActions.append(self.unit.move(nextPos))
+			self.last_target = Point3((nextPos.position.x, nextPos.position.y, self.game.getHeight(nextPos.position)))
+			self.label = 'Searching for Enemy Bases'
+			return True
+		return False
+
 #####################
 #Gathering Functions#
 #####################
+
+	def LongDistanceMine(self):
+		if len(self.unit.orders) == 0:
+			for nexus in self.game.units(NEXUS).ready:
+				#print (self.unit.tag, 'checking for minerals')
+				if self.game.state.mineral_field.closer_than(100, nexus).exists:
+					mf = self.game.state.mineral_field.closer_than(100, nexus).closest_to(self.unit)
+					self.game.combinedActions.append(self.unit.gather(mf, queue=False))
+					return True
+		else:
+			if 'gather' in str(self.unit.orders).lower() or 'return' in str(self.unit.orders).lower():
+				return True		
+
 	def OverMine(self):
 		if len(self.unit.orders) == 0:
 			for nexus in self.game.units(NEXUS).ready:
 				#print (self.unit.tag, 'checking for minerals')
-				for mf in self.game.state.mineral_field.closer_than(10, nexus).sorted(lambda x: self.unit.distance_to(x.position)):
+				if self.game.state.mineral_field.closer_than(10, nexus).exists:
+					mf = self.game.state.mineral_field.closer_than(10, nexus).random
 					self.game.combinedActions.append(self.unit.gather(mf, queue=False))
 					return True
 		else:
@@ -261,12 +414,19 @@ class Probe:
 
 	def checkAssim(self):
 		if self.vas_miner and self.game.time > self.next_assim_update:
+			update_time = 5
 			assim = self.game.units.find_by_tag(self.gather_target.tag)
 			if assim and assim.assigned_harvesters > assim.ideal_harvesters:
-				#overcrowded, leave.
-				self.gather_target = None
-				self.vas_miner = False
-			self.next_assim_update = self.game.time + 5
+				#overcrowded, leave - but only if no other probes have already lef this frame.
+				if not self.game.worker_force_leave:
+					self.gather_target = None
+					self.vas_miner = False
+					self.game.worker_force_leave = True
+					self.removeGatherer()
+				else:
+					update_time = 1
+
+			self.next_assim_update = self.game.time + update_time
 
 	def removeGatherer(self):
 		if self.game._worker_assignments.get(self.unit.tag):
@@ -321,6 +481,7 @@ class Probe:
 					self.last_target = Point3((closestTarget.position3d.x, closestTarget.position3d.y, (closestTarget.position3d.z + 1)))
 					self.game.combinedActions.append(self.unit.gather(closestTarget, queue=False))
 					self.vas_miner = True
+					self.game.worker_force_leave = True
 					return True
 			#target the minerals.
 			closestMineral = self.findMinerals()
@@ -342,10 +503,13 @@ class Probe:
 				self.last_target = Point3((closestTarget.position3d.x, closestTarget.position3d.y, (closestTarget.position3d.z + 1)))
 				self.game.combinedActions.append(self.unit.gather(closestTarget, queue=False))
 				self.vas_miner = True
+				self.game.worker_force_leave = True
 				return True
 
 	def findVespene(self):
 		#get a list of assimilators, sorted by distance to us and loop to find one with an open space.
+		if self.game.worker_force_leave:
+			return None
 		for assimilator in self.game.units(ASSIMILATOR).ready.filter(lambda x:x.vespene_contents > 0 and x.assigned_harvesters < 3).sorted(lambda x: x.distance_to(self.unit.position)):
 			#print (self.unit.tag, 'gas found')
 			return assimilator
@@ -448,7 +612,10 @@ class Probe:
 				return mf
 		return None		
 			
-
+	def becomeScout(self):
+		self.scout = True
+		self.removeGatherer()
+		return
 
 ####################################
 #Properties and Must Have Functions#

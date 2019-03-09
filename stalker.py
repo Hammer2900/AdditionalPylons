@@ -77,10 +77,22 @@ class Stalker:
 	def runList(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+			
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.				
+			
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
 				self.label = 'Attacking'
 				return #we attacked this step.			
+
+			#see if we need to evaluate the battle before entering it.
+			if self.game.waitForce(self):
+			 	self.label = 'Waiting for reinforcements'
+			 	return #staying alive
+
 			
 			#1a check to see if we are even able to retreat.
 			if self.game.canEscape(self):
@@ -103,7 +115,7 @@ class Stalker:
 			if self.game.KeepKiteRange(self):
 				self.label = 'Kiting'
 				return #kiting
-
+			
 			#look around our range and find the highest target value and move towards it.
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):
 				self.label = 'Moving Priority Target'
@@ -134,7 +146,24 @@ class Stalker:
 			return #looking for targets
 
 
-
+	def offensiveBlink(self, targetEnemy):
+		#make sure we can even blink.
+		if AbilityId.EFFECT_BLINK_STALKER in self.abilities and self.game.can_afford(EFFECT_BLINK_STALKER):
+			#check to see if the target is running away from us.
+			lead_position = self.game.leadTarget(targetEnemy)
+			#get distance from unit to enemy and distance from unit to lead position.
+			enemy_distance = self.unit.distance_to(targetEnemy)
+			if enemy_distance < 11 and enemy_distance > 6:
+				overall = self.unit.distance_to(lead_position) - enemy_distance
+				if overall > 0:
+					#unit is running away, blink towards them.
+					blinkPoint = self.unit.position.towards(targetEnemy.position, distance=5.5)
+					if blinkPoint:
+						if self.checkNewAction('blink', blinkPoint[0], blinkPoint[1]):
+							self.game.combinedActions.append(self.unit(AbilityId.EFFECT_BLINK_STALKER, blinkPoint))
+						self.last_target = blinkPoint.position
+						return True
+		return False
 
 	def blinkRetreat(self):
 		self.retreating = True
