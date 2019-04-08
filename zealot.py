@@ -53,6 +53,21 @@ class Zealot:
 		self.last_target = None
 		self.label = 'Idle'
 		self.closestEnemies = None
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}
+		
+		
 		
 	def make_decision(self, game, unit):
 		self.game = game
@@ -70,6 +85,8 @@ class Zealot:
 
 
 	def runList(self):
+		if not self.unit.is_ready:
+			return #warping in
 		#get all the enemies around us.
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		#self.closestEnemies = self.closestEnemies.exclude_type([REAPER]) #don't do it.
@@ -120,7 +137,11 @@ class Zealot:
 			return #looking for targets
 			
 			
-				
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0			
 			
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))

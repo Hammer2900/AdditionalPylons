@@ -45,6 +45,19 @@ class Archon:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
@@ -116,7 +129,11 @@ class Archon:
 
 		self.label = 'Idle'
 
-
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
 	
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))		

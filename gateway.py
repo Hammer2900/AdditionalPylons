@@ -1,5 +1,6 @@
 import random
 import sc2
+from sc2 import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.constants import *
 from sc2.position import Point2, Point3
@@ -35,7 +36,8 @@ class Gateway:
 			await self.runList()
 		else:
 			self.label = "Busy {}".format(str(len(self.abilities)))
-
+		self.label += " {}".format(str(self.queued))
+#		self.label += "- {}".format(str(unit.noqueue))
 		#debugging info
 		if _debug or self.unit.is_selected:
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
@@ -103,7 +105,7 @@ class Gateway:
 	
 	def queueStatus(self):
 		if self.warpgate:
-			if len(self.abilities) == 1 and (self.game.minerals > 100 or (self.game.vespene > 100 and self.game.minerals > 50)) and self.game.supply_left > 1:
+			if len(self.abilities) < 2 and (self.game.minerals > 100 or (self.game.vespene > 100 and self.game.minerals > 50)) and self.game.supply_left > 1:
 				self.queued = True
 			else:
 				self.queued = False
@@ -118,6 +120,8 @@ class Gateway:
 	def canBuild(self, trainee):
 		if self.game.can_afford(self.unitCounter.getUnitID(trainee)):
 			#make sure we can actually build it and the core is finished.
+			if self.game.enemy_race == Race.Terran and trainee == 'Zealot' and not self.game.units(CYBERNETICSCORE).ready.exists:
+				return False #don't build zealots to start so we can get stalkers out sooner.
 			if trainee != 'Zealot':
 				if not self.game.units(CYBERNETICSCORE).ready.exists:
 					return False
@@ -169,6 +173,63 @@ class Gateway:
 	
 	async def warpgate_placement(self, unit_ability):
 		#todo: first, check for a warp prism in pylon mode.
+		#find super pylons and sort them closest to the enemy.
+		#loop the pylons and find one that isn't in range of an enemy.
+		#if no super pylons exist, find any pylon and do it again.
+		closestEnemy = None
+		if len(self.game.known_enemy_units) > 0:
+			closestEnemy = self.game.known_enemy_units.closest_to(self.game.start_location)
+		if closestEnemy and self.game.units(PYLON).ready.exists:
+			if len(self.game.units.of_type([NEXUS, WARPGATE])) > 0:
+	
+				for building in self.game.units().of_type([NEXUS, WARPGATE]).ready.sorted(lambda x: x.distance_to(closestEnemy)):
+					superPylons = self.game.units(PYLON).ready.closer_than(6, building)
+					for pylon in superPylons:
+						if len(self.game.cached_enemies.closer_than(12, pylon)) > len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon)):
+							#print ('skipping super', str(len(self.game.cached_enemies.closer_than(12, pylon))), str(len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon))))
+							continue
+						else:
+							#found a good pylon.
+							pos = pylon.position.to2.random_on_distance(4)
+							placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+							if placement:
+								#print ('super placement', str(len(self.game.cached_enemies.closer_than(12, pylon))), str(len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon))))
+								return placement
+			#no valid super found, check all pylons.
+			regPylons = self.game.units(PYLON).ready.sorted(lambda x: x.distance_to(closestEnemy))
+			for pylon in regPylons:
+				if len(self.game.cached_enemies.closer_than(12, pylon)) > len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon)):
+					#print ('skipping regular', str(len(self.game.cached_enemies.closer_than(12, pylon))), str(len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon))))
+					continue
+				else:
+					#found a good pylon.
+					pos = pylon.position.to2.random_on_distance(4)
+					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+					if placement:
+						#print ('regular placement', str(len(self.game.cached_enemies.closer_than(12, pylon))), str(len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon))))
+						return placement
+			#enemies must be around everywhere, just pick a random pylon and place it.
+			pylon = self.game.units(PYLON).ready.random
+			if pylon:
+				pos = pylon.position.to2.random_on_distance(4)
+				placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+				if placement:
+					#print ('random placement', str(len(self.game.cached_enemies.closer_than(12, pylon))), str(len(self.game.units.exclude_type(PROBE).not_structure.closer_than(12, pylon))))
+					return placement
+		else:
+			#just place the unit closest to the defensive position.
+			pylon = self.game.units(PYLON).ready.closest_to(self.game.defensive_pos)
+			if pylon:
+				pos = pylon.position.to2.random_on_distance(4)
+				placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+				if placement:
+					#print ('defensive placement')
+					return placement
+		return None	
+	
+	
+	async def warpgate_placement_working(self, unit_ability):
+		#todo: first, check for a warp prism in pylon mode.
 		#second, check for proxy pylon.
 		startPos = random.choice(self.game.enemy_start_locations)
 		if not self.game.under_attack and not self.game.defend_only:
@@ -194,37 +255,7 @@ class Gateway:
 					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
 					if placement:
 						return placement
-		return None	
-	
-		
-	async def warpgate_placement_working(self, unit_ability):
-		#first, check for a warp prism in pylon mode.
-		#second, check for proxy pylon.
-		if not self.game.under_attack and not self.game.defend_only and self.game._build_manager.check_pylon_loc(self.game.proxy_pylon_loc):
-			pylon = self.game.units(PYLON).ready.closer_than(6, self.game.proxy_pylon_loc).first
-			pos = pylon.position.to2.random_on_distance(4)
-			placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
-			if placement:
-				return placement			
-		
-		#else warp them in near super pylons closest to enemies if around.		
-		if self.game.units(PYLON).ready.exists and self.game.units(NEXUS).exists:
-			#find the nexus we want to warp near.
-			nexus = None
-			if self.game.known_enemy_units.exists:
-				nexus = self.game.units(NEXUS).ready.closest_to(self.game.known_enemy_units.closest_to(self.game.start_location))
-			else:
-				nexus = self.game.units(NEXUS).ready.closest_to(random.choice(self.game.enemy_start_locations))
-			if nexus:
-				#find a super pylon near the nexus.
-				pylons = self.game.units(PYLON).ready.closer_than(6, nexus)
-				for pylon in pylons:
-					pos = pylon.position.to2.random_on_distance(4)
-					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
-					if placement:
-						return placement
-		return None	
-	
+		return None		
 		
 
 	

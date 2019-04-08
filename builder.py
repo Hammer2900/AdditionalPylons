@@ -79,8 +79,7 @@ class Builder:
 			self.last_pylon_check = self.game.time + 5
 			self.check_pylons_exist()
 
-		#reset training save
-		self.last_build = None		
+
 		
 		#if we have no probes, might as well exit because we can't build anything.
 		if self.game.units(PROBE).ready.amount == 0:
@@ -385,7 +384,13 @@ class Builder:
 ############################
 	def build_assimilators(self):
 		if self.game.vespene < 750:
-			if self.can_build_assimilators and (not self.game.already_pending(ASSIMILATOR) or self.bypass_assim_wait) and self.game.can_afford(ASSIMILATOR) and self.game.units(NEXUS).ready:
+			economic_pass = False
+			if self.bypass_assim_wait:
+				economic_pass = True
+			elif self.can_build_assimilators and  self.game.minerals > 500 and self.game.vespene < 500:
+				economic_pass = True
+			
+			if self.can_build_assimilators and (not self.game.already_pending(ASSIMILATOR) or economic_pass) and self.game.can_afford(ASSIMILATOR) and self.game.units(NEXUS).ready:
 				nexus = self.game.units(NEXUS).ready.random
 				vaspenes = self.game.state.vespene_geyser.closer_than(15.0, nexus)
 				for vaspene in vaspenes:
@@ -584,7 +589,7 @@ class Builder:
 					return True			
 			
 	async def build_twilightcouncil(self):
-		goto = self.buildingPlacement(self.pylon3Loc)
+		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
 			worker = self.game.select_build_worker(goto.position, force=True)
 			if worker:
@@ -740,13 +745,25 @@ class Builder:
 
 	def check_pylon_loc(self, pylonloc, searchrange=7):
 		#check if there is a pylon within  distance of the pylon loc.
-		return self.game.units(PYLON).closer_than(searchrange, pylonloc).exists
+		if pylonloc:
+			if len(self.game.units(PYLON)) == 0:
+				return False
+			return self.game.units(PYLON).closer_than(searchrange, pylonloc).exists
+		return False
 	
 	def check_cannon_loc(self, cannonloc, searchrange=4):
-		return self.game.units(PHOTONCANNON).closer_than(searchrange, cannonloc).exists
+		if cannonloc:
+			if len(self.game.units(PHOTONCANNON)) == 0:
+				return False
+			return self.game.units(PHOTONCANNON).closer_than(searchrange, cannonloc).exists
+		return False
 	
 	def check_shield_loc(self, shieldloc, searchrange=4):
-		return self.game.units(SHIELDBATTERY).closer_than(searchrange, shieldloc).exists
+		if shieldloc:
+			if len(self.game.units(SHIELDBATTERY)) == 0:
+				return False
+			return self.game.units(SHIELDBATTERY).closer_than(searchrange, shieldloc).exists
+		return False
 	
 
 #######################

@@ -150,16 +150,16 @@ class ProtossAgent:
 			self.enemyUnitCount('Carrier'),
 			self.enemyUnitCount('Mothership'),
 			self.enemyUnitCount('Archon'),
-			self.last_actions[0],
-			self.last_actions[1],
-			self.last_actions[2],
-			self.last_actions[3],
-			self.last_actions[4],
-			self.last_actions[5],
-			self.last_actions[6],
-			self.last_actions[7],
-			self.last_actions[8],
-			self.last_actions[9]
+			# self.last_actions[0],
+			# self.last_actions[1],
+			# self.last_actions[2],
+			# self.last_actions[3],
+			# self.last_actions[4],
+			# self.last_actions[5],
+			# self.last_actions[6],
+			# self.last_actions[7],
+			# self.last_actions[8],
+			# self.last_actions[9]
 		]
 		
 		#print (str(observation))

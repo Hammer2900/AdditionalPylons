@@ -37,7 +37,21 @@ class Observer:
 		self.last_target = None
 		self.label = 'Idle'
 		self.expansionScout = False
-
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}
+		
+		
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
 		self.game = game
@@ -199,9 +213,9 @@ class Observer:
 			
 	def checkExpansion(self):
 		#check to see if a unit is already there, if not, move to it.
-		self.game.expPos
+		#self.game.expPos
 		
-		if self.game.units(OBSERVER).closer_than(2, self.game.expPos).amount == 1 and self.unit.distance_to(self.game.expPos) > 3:
+		if len(self.game.units(OBSERVER)) > 0 and self.game.units(OBSERVER).closer_than(2, self.game.expPos).amount == 1 and self.unit.distance_to(self.game.expPos) > 3:
 			return False #someone already there.
 			
 		if self.unit.is_moving:
@@ -239,7 +253,12 @@ class Observer:
 					self.game.combinedActions.append(self.unit.move(retreatPoint))
 				return True
 		return False			
-			
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0			
 				
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))

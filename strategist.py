@@ -14,7 +14,7 @@ from unit_counters import UnitCounter
 This class makes our build/macro decisions.
 
 '''
-_debug = False
+_debug = True
 
 class Strategist:
 	
@@ -42,6 +42,7 @@ class Strategist:
 		self.saving = False
 		
 		#enemyintel
+		self.unitTimes = {}
 		self.unitCounter = UnitCounter()
 		self.enemy_intel = {}
 		self.counted_enemy = {}
@@ -103,6 +104,7 @@ class Strategist:
 		self.detect_single_worker()
 		self.detect_reaper_cheese()
 		self.army_score()
+		self.detect_allinWorker_rush()
 		#if self.game.minerals >= self.game.vespene:
 		if self.game.vespene < 500:
 			self.target_vespene = True
@@ -184,9 +186,11 @@ class Strategist:
 			
 
 		#build a nexus at the expansion.
-		if not self.game.under_attack and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
+		if self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
 			if len(self.game.units(PROBE)) > 0:
-				await self.game.expand_now()		
+				self.game._build_manager.last_build = 5
+				await self.game.expand_now()
+				return
 
 		#build the 1st gateway.
 		if self.game.units(NEXUS).amount > 1:
@@ -199,13 +203,20 @@ class Strategist:
 		
 		
 		#expand a 3rd time.
-		if not self.game.under_attack and self.startBuildingCount > 0 and self.game.can_afford(NEXUS) and self.game.units(NEXUS).amount == 2 and not self.game.rush_detected and self.allAllowedQueued:
+		if self.startBuildingCount > 0 and self.game.can_afford(NEXUS) and self.game.units(NEXUS).amount == 2 and not self.game.rush_detected and self.allAllowedQueued:
 			if len(self.game.units(PROBE)) > 0:
-				await self.game.expand_now()	
+				self.game._build_manager.last_build = 5
+				await self.game.expand_now()
+				return
 
 		#build pylon 2
-		if self.game.units(NEXUS).amount > 2 and not self.game.rush_detected:
-			self.build.can_build_pylons = True
+		if len(self.game.units(PYLON)) == 1 and self.game.units(NEXUS).amount > 2 and not self.game.rush_detected:
+			if self.game.can_afford(PYLON) and self.game.already_pending(PYLON) == 0:
+				await self.game._build_manager.buildPylon()
+				self.game.can_spend = False
+				return
+
+
 	
 		#add in stop for easy assim fix.
 		if self.game.units(PYLON).amount < 2:
@@ -274,12 +285,14 @@ class Strategist:
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
 			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)
+			return
 
 	async def setup_onebase_defense(self):
 		#build the pylon at the end of the ramp.
 		if not self.game.under_attack and not self.pylon1 and self.game.can_afford(PYLON):
 			await self.game.build(PYLON, near=self.ramp1pylon1Pos)
-			self.pylon1 = True		
+			self.pylon1 = True
+			return
 		#build a forge.
 		self.build.forges = 1
 	
@@ -299,7 +312,9 @@ class Strategist:
 		#build cannons
 		if self.game.units(FORGE).ready.exists and self.game.can_afford(PHOTONCANNON) and self.game.units(PHOTONCANNON).amount < 4:
 			if self.build.check_pylon_loc(self.ramp1pylon1Pos, searchrange=3):
-				await self.game.build(PHOTONCANNON, near=self.ramp1pylon1Pos)		
+				self.game._build_manager.last_build = 14
+				await self.game.build(PHOTONCANNON, near=self.ramp1pylon1Pos)
+				return
 		
 		#leave here if 2 cannons haven't been built.
 		if self.game.units(PHOTONCANNON).amount < 2:
@@ -347,7 +362,9 @@ class Strategist:
 		#build a nexus at the expansion.
 		if not self.game.under_attack and self.game.units(GATEWAY).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
 			if len(self.game.units(PROBE)) > 0:
-				await self.game.expand_now()		
+				self.game._build_manager.last_build = 5
+				await self.game.expand_now()
+				return
 
 		#leave until nexus is built.
 		if self.game.units(NEXUS).amount < 2:
@@ -381,7 +398,10 @@ class Strategist:
 	async def setup_twobase_defense(self):
 		#build the pylon that the cannons will be placed near.
 		if not self.game.under_attack and not self.pylon1 and self.game.can_afford(PYLON):
-			await self.game.build(PYLON, near=self.pylon1Pos)		
+			await self.game.build(PYLON, near=self.pylon1Pos)
+			self.game._build_manager.last_build = 2
+			return
+		
 		if not self.pylon1 and self.build.check_pylon_loc(self.pylon1Pos, searchrange=3):
 			self.pylon1 = True
 			
@@ -398,7 +418,9 @@ class Strategist:
 		#build a nexus at the expansion.
 		if not self.game.under_attack and self.game.units(FORGE).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
 			if len(self.game.units(PROBE)) > 0:
-				await self.game.expand_now()		
+				self.game._build_manager.last_build = 5
+				await self.game.expand_now()
+				return
 
 		#build a gateway after nexus
 		if self.game.units(NEXUS).amount >= 2 and self.game.can_afford(GATEWAY) and self.game.units(GATEWAY).amount == 0:
@@ -407,6 +429,7 @@ class Strategist:
 		#build cannons at the original pylon.
 		if self.game.units(FORGE).ready.exists and self.game.units(GATEWAY).amount >= 1 and self.game.can_afford(PHOTONCANNON) and self.game.units(PHOTONCANNON).amount < 4:
 			if self.build.check_pylon_loc(self.pylon1Pos, searchrange=3):
+				self.game._build_manager.last_build = 14
 				await self.game.build(PHOTONCANNON, near=self.pylon1Pos)		
 	
 		#build our next production building.
@@ -435,12 +458,16 @@ class Strategist:
 		#build some shields.
 		if len(self.game.units(PYLON)) > 1 and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 0 and self.startBuildingCount >= 3:
 			#build shield 1.
+			self.game._build_manager.last_build = 15
 			await self.build.build_shield_battery(self.r2battery1Pos)
+			return
 
 		#build some shields.
 		if len(self.game.units(PYLON)) > 1 and self.game.units(CYBERNETICSCORE).ready.exists and self.game.can_afford(SHIELDBATTERY) and self.game.units(SHIELDBATTERY).amount == 1 and self.startBuildingCount >= 3:
 			#build shield 2.
+			self.game._build_manager.last_build = 15
 			await self.build.build_shield_battery(self.r2battery1Pos)
+			return
 						
 			
 		#build the 4th production building.
@@ -504,8 +531,8 @@ class Strategist:
 				maxset = sets
 			tsets += sets
 			
-		minset = floor(minset + 1)
-		maxset = floor(maxset + 1)
+		minset = ceil(minset + 1)
+		maxset = ceil(maxset + 1)
 
 		# avgset = 1
 		# if len(self.able_army) > 0:
@@ -556,13 +583,29 @@ class Strategist:
 				self.build.darkshrines = 1				
 
 	def attack_command(self):
+		min_power = 4000
+		if self.strat_id == 1:
+			min_power = 200
+		elif self.strat_id == 2:
+			min_power = 1500
+		elif self.strat_id == 3:
+			min_power = 2000
+		elif self.strat_id == 4:
+			min_power = 2500	
+		elif self.strat_id == 5:
+			min_power = 3000
+		
+		#check to see if we just need to attack to collect enemy units.
+		if self.enemy_power < 5:    
+			min_power = 0
+		
 		if self.game.defend_only:
 			#currently in defend mode, don't attack until we have 20% more force than them.
-			if self.army_power > 40 and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
+			if self.army_power > min_power and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
 				self.game.defend_only = False
 		else:
 			#currently attacking, don't defend unless we have less force than enemy.
-			if (self.army_power < self.enemy_power or self.army_power < 40) and self.game.supply_used < 190 and not self.game.under_attack:
+			if (self.army_power < self.enemy_power or self.army_power < min_power) and self.game.supply_used < 190 and not self.game.under_attack:
 				self.game.defend_only = True
 		#if all nexus are dead, might as well just attack and hope for the best.
 		if self.game.units(NEXUS).amount == 0:
@@ -703,12 +746,12 @@ class Strategist:
 		
 		#add queue label
 		xpos += 0.025
-		elab = "Robo Queued: {_saving} : {_needed}".format(_saving=str(self.robotics_needed), _needed=str(self.game.units(ROBOTICSFACILITY).ready.noqueue.exists))
+		elab = "Robo Queued: {_saving} : {_needed}".format(_saving=str(self.robotics_needed), _needed=str(self.game.queuedRobos))
 		self.game._client.debug_text_screen(elab, pos=(0.85, xpos), size=10)
 		
 		#add queue label
 		xpos += 0.025
-		elab = "Star Queued: {_saving} : {_needed}".format(_saving=str(self.stargate_needed), _needed=str(self.game.units(STARGATE).ready.noqueue.exists))
+		elab = "Star Queued: {_saving} : {_needed}".format(_saving=str(self.stargate_needed), _needed=str(self.game.queuedStarGates))
 		self.game._client.debug_text_screen(elab, pos=(0.85, xpos), size=10)			
 	
 		#add Rush label
@@ -924,12 +967,21 @@ class Strategist:
 			#print ('reaper/banshee cheese detected')
 			self.build.forges = 1
 
+	def detect_allinWorker_rush(self):
+		self.game.workerAllin = False
+		#check the building list to see if any nexus have detected workers.
+		if self.game.buildingList.underWorkerAllin:
+			self.game.workerAllin = True
+		
+		
+		
+
 	def detect_rush(self):
 		#print (self.game.units().not_structure.exclude_type(PROBE).amount, self.game.known_enemy_units.exists)
 		detected = False
 		if self.game.units.not_structure.exclude_type(PROBE).amount < 3 and self.game.units(PHOTONCANNON).ready.amount < 3 and self.game.units.structure.amount < 5:
 			for nexus in self.game.units(NEXUS):
-				if not self.game.rush_detected and self.game.known_enemy_units.not_flying.closer_than(20, nexus).amount > 1:
+				if not self.game.rush_detected and self.game.known_enemy_units.exclude_type(PROBE).not_flying.closer_than(20, nexus).amount > 5:
 					detected = True
 		if detected:
 			self.game.rush_detected = True
@@ -1024,7 +1076,7 @@ class Strategist:
 			if self.unitCounter.getUnitPower(friendly.name):
 				army_score += self.unitCounter.getUnitPower(friendly.name)
 			else:
-				print (friendly.name)
+				print ('army_score missing', friendly.name)
 		self.army_power = army_score
 
 
@@ -1129,9 +1181,10 @@ class Strategist:
 				self.star_demand = "{ratio} : {raw}".format(raw=t_star, ratio=r_star)
 
 			#if we can build, then build the most requested.
-			if len(buildings_needed) == 0 and self.allAllowedQueued and self.game.minerals > 400:
+			if len(buildings_needed) == 0 and self.allAllowedQueued and self.game.minerals > 400 and self.game.vespene > 350:
 				min_sets = self.calc_minset(ratio)
 				demanded = self.find_demanded(ratio, min_sets)
+				#print (min_sets, demanded, ratio, buildings_needed)
 			
 				#demanded = sorted(demand_dict.items(), key=itemgetter(1), reverse=True)[0][0]
 				#append the new value to buildings_needed
@@ -1140,6 +1193,8 @@ class Strategist:
 				else:
 					val = buildings_needed.get(demanded) + 1
 					buildings_needed.update({demanded:val})
+					
+				#print (buildings_needed)
 				#turn off the others.
 				if demanded == 'Gateway':
 					self.build.roboticsfacility = 0
@@ -1150,6 +1205,8 @@ class Strategist:
 				elif demanded == 'Stargate':
 					self.build.gateways = 0
 					self.build.roboticsfacility = 0
+					
+					
 			else:
 				self.build.roboticsfacility = 0
 				self.build.stargates = 0
@@ -1172,7 +1229,7 @@ class Strategist:
 			if self.game.minerals > 500 and self.gateway_needed and self.game.queuedGates:
 				buildings_needed.update({'Gateway':1})
 			else:
-				self.buildings_needed = {}
+			 	self.buildings_needed = {}
 		else:
 			self.buildings_needed = buildings_needed
 		
@@ -1181,7 +1238,7 @@ class Strategist:
 		#multiple the ratio by the min_sets to get the current wanted amount of the building.
 		#then subtract how many actual buildings we have from them, and the one with the least is the most demanded.
 		demanded = None
-		most_needed = 0
+		most_needed = -1
 		demanded_count = 100
 		for building, count in ratio.items():
 			[needed, d_count] = self.calc_need(building, count, sets)
@@ -1200,7 +1257,7 @@ class Strategist:
 			if sets < min_sets:
 				min_sets = sets
 		min_sets += 1
-		return floor(min_sets)
+		return ceil(min_sets)
 
 
 	def calc_need(self, building, count, sets):
@@ -1320,10 +1377,11 @@ class Strategist:
 			#print (name, count)
 			#find the building that makes this unit and add into the demand.
 			building = self.unitCounter.getUnitTrainer(name)
+			unitValue = self.unitCounter.getUnitCost(name) * count
 			if not demand_dict.get(building):
-				demand_dict.update({building:count})
+				demand_dict.update({building:unitValue})
 			else:
-				val = demand_dict.get(building) + count
+				val = demand_dict.get(building) + unitValue
 				demand_dict.update({building:val})
 		#get the building we need the most.
 		most_requested = 'Gateway'
@@ -1342,23 +1400,14 @@ class Strategist:
 			if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
 				most_requested2 = 'FleetBeacon'
 		
-		# if most_requested == 'Stargate':
-		# 	tech_up = False
-		# 	if self.starting_army.get('Tempest'):
-		# 		tech_up = True
-		# 		if self.starting_army.get('VoidRay') and self.starting_army.get('VoidRay') > self.starting_army.get('Tempest'):
-		# 			tech_up = False
-		# 		if self.starting_army.get('Phoenix') and self.starting_army.get('Phoenix') > self.starting_army.get('Tempest'):
-		# 			tech_up = False
-		# 		if tech_up:
-		# 			most_requested2 = 'FleetBeacon'
 		if most_requested == 'Gateway':
 			most_requested2 = 'TwilightCouncil'
 
 		self.start_build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested2]
 		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
 			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
-		#print (self.start_build_order)
+
+		print (self.start_build_order)
 		
 		
 
@@ -1509,6 +1558,10 @@ class Strategist:
 		if name == 'Mothership':
 			return self.train.allow_mothership		
 
+	def remove_timed(self, tag):
+		if self.unitTimes.get(tag):
+			del self.unitTimes[tag]		
+
 	def remove_intel(self, tag):
 		if self.enemy_intel.get(tag):
 			del self.enemy_intel[tag]
@@ -1543,11 +1596,12 @@ class Strategist:
 	def collect_intel(self):
 		#collect all the known enemy names, tags
 		zerg_units = [SPINECRAWLER, SPORECRAWLER, OVERLORD, BANELING, ZERGLING, HYDRALISK, MUTALISK, ULTRALISK, ROACH, INFESTOR, BROODLORD, QUEEN, OVERSEER, RAVAGER, LURKER, CORRUPTOR, VIPER]
-		terran_units = [COMMANDCENTER, MARINE, SIEGETANK, REAPER, GHOST, MARAUDER, THOR, MEDIVAC, BANSHEE, RAVEN, BATTLECRUISER, VIKINGASSAULT, VIKINGFIGHTER, LIBERATOR, HELLION, WIDOWMINE, CYCLONE, MISSILETURRET]
+		terran_units = [PLANETARYFORTRESS, COMMANDCENTER, MARINE, SIEGETANK, REAPER, GHOST, MARAUDER, THOR, MEDIVAC, BANSHEE, RAVEN, BATTLECRUISER, VIKINGASSAULT, VIKINGFIGHTER, LIBERATOR, HELLION, WIDOWMINE, CYCLONE, MISSILETURRET]
 		protoss_units = [MOTHERSHIP, COLOSSUS, ZEALOT, STALKER, HIGHTEMPLAR, DARKTEMPLAR, SENTRY, PHOENIX, CARRIER, VOIDRAY, WARPPRISM, OBSERVER, IMMORTAL, ADEPT, ORACLE, TEMPEST, DISRUPTOR, ARCHON, PHOTONCANNON]
 		all_units = zerg_units + terran_units + protoss_units
 		enemyThreats = self.game.known_enemy_units.of_type(all_units)
 		new_unit = False
+		removals = {}
 		for enemy in enemyThreats:
 			#check if a new unique type of unit.
 			if enemy.name not in self.unique_enemies:
@@ -1558,14 +1612,45 @@ class Strategist:
 			#check if already exists, if it doesn't, add it.
 			if not self.enemy_intel.get(enemy.tag):
 				self.enemy_intel.update({enemy.tag:enemy.name})
-				#if enemy.name == 'PhotonCannon' or enemy.name == 'MissileTurret' or enemy.name == 'SpineCrawler' or enemy.name == 'SporeCrawler':
+				#enemy structurs seem to change tags, use the position to get rid of the old tag.
 				if enemy.is_structure:
 					self.cannonReplace(enemy)
-					
+				#check to see if it's a unit that morphed in, if so add it to removals.
+				if enemy.name in ['Archon']:
+					#check to see if it exists already, if so add more.
+					if removals.get(enemy.name):
+						val = removals.get(enemy.name) + 1
+						removals.update({enemy.name:val})
+					else:
+						removals.update({enemy.name:1})
+
+			# Keep the last time a unit that can morph into another was seen
+			if enemy.name in ['HighTemplar', 'DarkTemplar']:
+				self.unitTimes.update({enemy.tag:[enemy.name, self.game.time]})
+				
 		if new_unit:
 			#save if unique unit found
-			self.game._training_data.saveUnitResult(self.game.opp_id, self.unique_enemies)
+			self.game._training_data.saveUnitResult(self.game.opp_id, self.unique_enemies, self.game.enemy_race)
 
+		#if morphed unit was found, remove oldest previous unit if possible.
+		if len(removals) > 0:
+			#sort the time based unit dictionary
+			sorted_units = sorted(self.unitTimes.items(), key=itemgetter(1), reverse=False)
+			for name, num in removals.items():
+				if name == 'Archon':
+					remove_total = num * 2
+					removed = []
+					for tag, [pname, ltime] in self.unitTimes.items():
+						if pname in ['HighTemplar', 'DarkTemplar']:
+							#remove from lists.
+							self.remove_intel(tag)
+							removed.append(tag)
+							if len(removed) >= remove_total:
+								break
+					#clear units from unitTimes
+					for tag in removed:
+						self.remove_timed(tag)
+		
 			
 
 	def detect_single_worker(self):

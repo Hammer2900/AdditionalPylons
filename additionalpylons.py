@@ -27,8 +27,8 @@ from strategist import Strategist as stratControl
 from trainingdata import TrainingData as trainingData
 from protoss_agent import ProtossAgent as protossAgent
 
-_debug = False
-_version = 'v1.308'
+_debug = True
+_version = 'v1.405'
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 _test_strat_id = 0 #0 = turned off
 _collect_data = False  #collect data against protoss enemies if true.
@@ -52,7 +52,7 @@ class AdditionalPylons(sc2.BotAI):
 		self._defend_enemies = []
 		self._economic_update_gap = 1/2
 		self._next_endgame_check = 120
-		self._last_economic_update = 0
+		self._next_economic_update = -10
 		self._emergency_units = 0
 		self._wp_cargo = {}
 		self._worker_assignments = {}
@@ -65,6 +65,7 @@ class AdditionalPylons(sc2.BotAI):
 		self.rush_detected = False
 		self.update_workers = False
 		self.reaper_cheese = False
+		self.workerAllin = False
 		#end game variables.
 		self.victory_detected = None
 		self.defeat_detected = None
@@ -87,6 +88,7 @@ class AdditionalPylons(sc2.BotAI):
 		self.last_iter = -1
 		self.unit_moves = {} #tracks if the unit moved since last frame.
 		self.unit_positions = {} # tracks the last positions of the units, updates every frame.
+		self.burrowed_mines = {}
 		
 	async def on_step(self, iteration):
 		#realtime=True fix
@@ -97,16 +99,37 @@ class AdditionalPylons(sc2.BotAI):
 		#reset the variable to prevent multiple worker kick offs at once.
 		self.worker_force_leave = False
 		
+		#reset training save
+		self._build_manager.last_build = None
+		
 		self.combinedActions = []
 		#cache enemies for future calls.
 		self.cache_enemies()
 		self.check_movements()
+		
+		
 		
 		#put all effect positions to be dodged into a list.
 		self.dodge_positions = []
 		for effect in self.state.effects:
 			if effect.id in [EffectId.LURKERMP, EffectId.RAVAGERCORROSIVEBILECP]:
 				self.dodge_positions += effect.positions
+
+		#widow mine tracking
+		if self.enemy_race == Race.Terran:
+			self.trackWidowmines()
+
+		if len(self.units(DISRUPTORPHASED)) > 0:
+			for unit in self.units(DISRUPTORPHASED):
+				self.dodge_positions.append(unit.position)
+
+		if len(self.cached_enemies.of_type([DISRUPTORPHASED,BANELING])) > 0:
+			for unit in self.cached_enemies.of_type([DISRUPTORPHASED,BANELING]):
+				self.dodge_positions.append(unit.position)
+
+		if len(self.burrowed_mines) > 0:
+			for unit_tag, position in self.burrowed_mines.items():
+				self.dodge_positions.append(position)
 
 
 		
@@ -119,8 +142,12 @@ class AdditionalPylons(sc2.BotAI):
 			
 		#say GL and give version info for debugging.
 		if not self.intro_said and self.time > 4:
-			await self._client.chat_send(self._strat_manager.unitCounter.getIntroSaying(), team_only=False)
+			#await self._client.chat_send(self._strat_manager.unitCounter.getIntroSaying(), team_only=False)
 			await self._client.chat_send(self.intro_value, team_only=False)
+			intro_des = self._strat_manager.unitCounter.getIntroDescription(self._strat_manager.strat_id)	
+			win_per = self._training_data.stratWinPer()
+			full = '{}{}'.format(intro_des, win_per)		
+			await self._client.chat_send(full, team_only=False)			
 			self.intro_said = True
 			
 		#first step stuff
@@ -128,25 +155,26 @@ class AdditionalPylons(sc2.BotAI):
 			self.loadStart()
 
 
+		
 		self.can_spend = True		
-		if iteration % 12 == 0:
+		#if iteration % 6 == 0:
+		if self.time > self._next_economic_update:
+			self._next_economic_update = self.time + 0.33
 
 			#print ('eco', str(iteration))
-			self.expPos = self._get_next_expansion()
+			#self.expPos = self._get_next_expansion()
 			self.checkAttack()
 			await self.build_economy()
-			self._last_economic_update = self.time + self._economic_update_gap
 
 			###strategist###
-			await self._strat_manager.strat_control(self, self._build_manager, self._train_manager)			
+			await self._strat_manager.strat_control(self, self._build_manager, self._train_manager)
+			
 			###build#####
 			if self.can_spend:
 				await self._build_manager.build_any(self)
 			###save observation data along with the action taken.###
 			if _collect_data and self.enemy_race == Race.Protoss:
 				await self._protossAgent.save_decision(self)				
-				
-		if iteration % 8 == 0:
 
 			###run independent buildings###
 			await self.buildingList.make_decisions(self)
@@ -171,7 +199,7 @@ class AdditionalPylons(sc2.BotAI):
 		#self._training_data.saveResult(self.opp_id, 2, result)
 		if 'Defeat' in str(result) and not self.defeat_detected:
 			print ('removing result')
-			self._training_data.removeResult(self.opp_id, self.match_id)
+			self._training_data.removeResult(self.opp_id, self.match_id, self.enemy_race)
 		if _collect_data and self.enemy_race == Race.Protoss and 'Victory' in str(result):
 			self.saveObs()
 			
@@ -179,24 +207,33 @@ class AdditionalPylons(sc2.BotAI):
 	async def on_unit_destroyed(self, unit_tag):
 		#remove enemy from intel if possible.
 		self._strat_manager.remove_intel(unit_tag)
+		#remove enemy from timed intel if possible.
+		self._strat_manager.remove_timed(unit_tag)
+
 		#remove friend from unit list if possible.
 		self.unitList.remove_object(unit_tag)
 		#remove from building list if possible.
-		self.buildingList.remove_object(unit_tag)		
+		await self.buildingList.remove_object(unit_tag, self)		
+		#remove from widowmine list if possible.
+		self.removeWidowmine(unit_tag)
 		#remove from expansion scout if matches.
 		if self._strat_manager.expansion_scout == unit_tag:
 			self._strat_manager.expansion_scout = None
+		#no way to know if it's a nexus if it was completed, so remove get next expansion just in case.  Hope this is gone later.
+		self.expPos = await self.get_next_expansion()
 
 	async def on_unit_created(self, unit):
 		self.unitList.load_object(unit)
 		
 	async def on_building_construction_complete(self, unit):
 		self.buildingList.load_object(unit)
+			
 
 			
 	async def on_building_construction_started(self, unit):
 		if unit.name == 'Nexus':
 			self.getDefensivePoint()
+			self.expPos = await self.get_next_expansion()
 		#detect nexus on start
 		if self.last_iter < 3:
 			self.buildingList.load_object(unit)
@@ -254,13 +291,24 @@ class AdditionalPylons(sc2.BotAI):
 		#find the best target, similiar to attack, but in large range so we can move to targets if needed.
 		targetEnemy = self.findBestMoveTarget(unit_obj)
 		if targetEnemy:
+			#check to see if the enemy is already in range.
+			#If they are, just stop at the current position instead of running into more danger.
+			#unless they are running away, then don't.
+			if unit_obj.unit.target_in_range(targetEnemy) and self.targetFacing(unit_obj, targetEnemy):
+				if unit_obj.checkNewAction('stop', targetEnemy.position[0], targetEnemy.position[1]):
+					self.combinedActions.append(unit_obj.unit.stop())
+				return True
+			
+			#not in range, move towards the target.
 			if unit_obj.checkNewAction('move', targetEnemy.position[0], targetEnemy.position[1]):
 				if unit_obj.unit.name == 'Stalker' and unit_obj.offensiveBlink(targetEnemy):
 					return True
-				elif not unit_obj.unit.is_flying and unit_obj.unit.ground_range < 2:
-					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(targetEnemy)))
+				# elif not unit_obj.unit.is_flying and unit_obj.unit.ground_range < 2:
+				# 	self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(targetEnemy)))
 				#elif unit_obj.unit.name == 'VoidRay' or unit_obj.unit.name == 'Phoenix':
 				elif unit_obj.unit.is_flying:
+					self.combinedActions.append(unit_obj.unit.attack(targetEnemy))
+				elif unit_obj.unit.distance_to(targetEnemy) < targetEnemy.movement_speed:
 					self.combinedActions.append(unit_obj.unit.attack(targetEnemy))
 				else:
 					self.combinedActions.append(unit_obj.unit.move(self.leadTarget(targetEnemy)))
@@ -280,7 +328,6 @@ class AdditionalPylons(sc2.BotAI):
 		
 		unit_obj.last_target = Point3((searchPos.position.x, searchPos.position.y, self.getHeight(searchPos.position)))
 		return True
-
 
 	def moveToEnemies(self, unit_obj):
 		if not self.cached_enemies:
@@ -344,7 +391,19 @@ class AdditionalPylons(sc2.BotAI):
 				unit_obj.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
 				if unit_obj.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
 					self.combinedActions.append(unit_obj.unit.attack(self.leadTarget(closestEnemy)))
-				return True		
+				return True
+			
+			#hang out near ground enemies to help.
+			# if self.cached_enemies.exclude_type(_exclude_list).exists:
+			# 	closestEnemy = self.cached_enemies.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
+			# 	dist = unit_obj.unit.distance_to(closestEnemy) - (12 + closestEnemy.radius)
+			# 	targetpoint = unit_obj.unit.position.towards(closestEnemy.position, distance=dist)
+			# 	unit_obj.last_target = Point3((targetpoint.position.x, targetpoint.position.y, (closestEnemy.position3d.z + 1)))
+			# 	if unit_obj.checkNewAction('move', targetpoint.position[0], targetpoint.position[1]):
+			# 		self.combinedActions.append(unit_obj.unit.attack(targetpoint.position))
+			# 	return True			
+			
+			
 		else:
 			if self.cached_enemies.not_structure.exclude_type(_exclude_list).exists:
 				closestEnemy = self.cached_enemies.not_structure.exclude_type(_exclude_list).closest_to(unit_obj.unit.position)
@@ -488,7 +547,6 @@ class AdditionalPylons(sc2.BotAI):
 				return True
 		return False
 
-
 	def keepSafe(self, unit_obj):
 		#if it's a ground n
 		(danger, closestEnemy) = self.inDangerSimple(unit_obj)		
@@ -497,7 +555,6 @@ class AdditionalPylons(sc2.BotAI):
 				return True
 		return False
 
-			
 	def keepSafeOld(self, unit_obj):
 		#if it's a ground n
 		danger = False		
@@ -547,7 +604,7 @@ class AdditionalPylons(sc2.BotAI):
 		#kite if we can.	
 		targetEnemy = self.findKiteTarget(unit_obj, bonus_range)
 		if targetEnemy:
-			if not targetEnemy.name in ['Carrier', 'Battlecruiser'] and not (targetEnemy.can_attack_air or targetEnemy.can_attack_ground) and unit_obj.closestEnemies.filter(lambda x: x.can_attack_air or x.can_attack_ground).exists:
+			if not targetEnemy.name in ['Carrier', 'Battlecruiser', 'PlanetaryFortress'] and not (targetEnemy.can_attack_air or targetEnemy.can_attack_ground) and unit_obj.closestEnemies.filter(lambda x: x.can_attack_air or x.can_attack_ground).exists:
 				#print ('found better kite target')
 				return False #better targets out there.
 			
@@ -597,13 +654,54 @@ class AdditionalPylons(sc2.BotAI):
 				return True
 		return False
 
+	def moveToFriendliesExp(self, unit_obj):
+		return False
+		#if we are moving and no enemies exist, then we must be search, so return false.
+		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
+			return False
+
+		closestFriendly = None
+		closestEnemy = None
+		fUnits = self.units().exclude_type([WARPPRISM,OBSERVER]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
+		if len(fUnits) == 0 or len(self.cached_enemies) == 0:
+			#no friends or no enemies.
+			return False 
+
+		groundEnemies = self.cached_enemies.not_flying
+		groundFriendlies = fUnits.filter(lambda x: x.can_attack_ground)
+		airEnemies = self.cached_enemies.flying
+		airFriendlies = fUnits.filter(lambda x: x.can_attack_air)
+		
+		
+		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air and len(groundEnemies) > 0 and len(groundFriendlies) > 0:
+			#can only attack ground units, so find ground unit enemys.
+			closestEnemy = groundEnemies.closest_to(unit_obj.unit)
+			closestFriendly = groundFriendlies.closest_to(closestEnemy)
+		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground and len(airEnemies) > 0 and len(airFriendlies) > 0:
+			# can only attack air units.
+			closestEnemy = airEnemies.closest_to(unit_obj.unit)
+			closestFriendly = airFriendlies.closest_to(closestEnemy)
+		else:
+			closestEnemy = self.cached_enemies.closest_to(unit_obj.unit)
+			closestFriendly = fUnits.closest_to(closestEnemy)
+		
+		if closestEnemy and closestFriendly:
+			#check to see if the friendly is closer to the enemy than we are.  If so, move to the friendly, else return false.
+			if unit_obj.unit.distance_to(closestEnemy) > closestFriendly.distance_to(closestEnemy):
+				if unit_obj.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
+					self.combinedActions.append(unit_obj.unit.move(closestFriendly))
+				if unit_obj.unit.is_selected or _debug:
+					unit_obj.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
+				return True			
+		return False	
+
 	def moveToFriendlies(self, unit_obj):
 		#if we are moving and no enemies exist, then we must be search, so return false.
-		if unit_obj.unit.is_moving and self.cached_enemies.amount == 0:
+		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
 			return False
 		
 		closestFriendly = None
-		fUnits = self.units().not_structure.exclude_type([SENTRY,WARPPRISM,OBSERVER]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
+		fUnits = self.units().not_structure.exclude_type([WARPPRISM,OBSERVER,PROBE]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
 		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air:
 			#can only attack ground, so go to enemies that are near ground units.
 			if self.cached_enemies.not_flying.exists and fUnits:
@@ -649,7 +747,6 @@ class AdditionalPylons(sc2.BotAI):
 #micro utlities code#
 #####################
 
-
 	def goRetreat(self, unit_obj, closestEnemy):
 		if unit_obj.unit.name == 'Probe':
 			self.worker_moved = self.time + 3
@@ -682,9 +779,6 @@ class AdditionalPylons(sc2.BotAI):
 				self._client.debug_line_out(self.unitDebugPos(unit_obj.unit), self.p2AddZ(retreatPoint), color=Point3((10, 2, 234)))					
 			return True
 		return False		
-		
-		
-		
 
 	def stayMaxRange(self, unit_obj, enemy):
 		#stay minimum of 9 range from closest.
@@ -704,6 +798,12 @@ class AdditionalPylons(sc2.BotAI):
 					self.combinedActions.append(unit_obj.unit.stop())#(unit_obj.unit.position))
 				return
 
+	def targetFacing(self, unit_obj, enemy) -> bool:
+		#find out if the unit is facing
+		faceTarget = self.towardsDirection(enemy.position, enemy.facing, 1)
+		if unit_obj.unit.distance_to(faceTarget) > unit_obj.unit.distance_to(enemy):
+			return False
+		return True
 
 	def leadTarget(self, enemy):
 		#get the point that is enemy speed in distance ahead of enemy, if the enemy is moving.
@@ -726,6 +826,7 @@ class AdditionalPylons(sc2.BotAI):
 
 	def findBestMoveTarget(self, unit_obj):
 		enemyThreats = unit_obj.closestEnemies
+		#if we can't attack air units, only target no flying.  Or only fly if we can't attack ground.
 		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air:
 			enemyThreats = unit_obj.closestEnemies.not_flying
 		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground:
@@ -733,17 +834,21 @@ class AdditionalPylons(sc2.BotAI):
 		
 		#score the threats and pick the best one.
 		if enemyThreats.exists:
-			topscore = -1000
+			topscore = -10000
 			topEnemy = None			
 			for enemy in enemyThreats:
 				score = 0
 				dpsperhp = 0
 				#take 1000 points off if it's a building.
 				if enemy.is_structure:
-					score = -1000
+					
+					#get the distance away and subtract it as well.
+					dist = enemy.distance_to(unit_obj.unit) - unit_obj.unit.radius - enemy.radius
+					score = -1000 - dist
 					#unless it can attack, then treat it as a regular enemy.
-					if enemy.can_attack_air or enemy.can_attack_ground:
-						score = 0
+					if enemy.can_attack_air or enemy.can_attack_ground or enemy.name == 'Pylon':
+						score += 1000
+					
 				
 				if (enemy.health + enemy.shield) > 0:
 					if unit_obj.unit.is_flying:
@@ -757,28 +862,42 @@ class AdditionalPylons(sc2.BotAI):
 					dpsperhp = dpsperhp * 100
 
 				score += dpsperhp
+				#the a score bonus from the unit object.
+				score += unit_obj.getTargetBonus(enemy.name)
+				#adjust for SCV's when defending.
+				if enemy.name == 'SCV' and self.defend_only:
+				 	score -= 100
+				#don't target interceptors.
+				elif enemy.name == 'Interceptor':
+				 	score = 0				
+				
+				
 				#kill medivacs off first if at all possible.
-				if enemy.name == 'Medivac':
-					score += 300
-				if enemy.name == 'SCV' and not self.defend_only:
-					score += 100					
-				if enemy.name == 'Battlecruiser':
-					score += 300					
-				if enemy.name == 'SiegeTank':
-					score += 300
-				if enemy.name == 'Carrier':
-					score += 300
-				if enemy.name == 'Infestor':
-					score += 300
-				if enemy.name == 'BroodLord':
-					score += 300						
-
-				if enemy.name == 'WidowMine':
-					score += 300
-					
-				if enemy.name == 'Interceptor':
-					score = 0
-					
+				# if enemy.name == 'Medivac':
+				# 	score += 300
+				# elif enemy.name == 'SCV' and not self.defend_only:
+				# 	score += 100
+				# elif enemy.name == 'SiegeTank':
+				# 	score += 300		
+				# elif enemy.name == 'Battlecruiser':
+				# 	score += 350
+				# elif enemy.name == 'Carrier':
+				# 	score += 350
+				# elif enemy.name == 'Infestor':
+				# 	score += 300
+				# elif enemy.name == 'BroodLord':
+				# 	score += 300
+				# elif enemy.name == 'WidowMine':
+				# 	score += 300
+				# elif enemy.name == 'Interceptor':
+				# 	score = 0
+				# elif enemy.name == 'Mothership':
+				# 	score += 600
+				# # elif enemy.name == 'PlanetaryFortress':
+				# # 	score += 15
+				# elif enemy.name == 'Viking' or enemy.name == 'VikingFighter':
+				# 	score += 300				
+				
 					
 					
 				if score > topscore:
@@ -809,12 +928,21 @@ class AdditionalPylons(sc2.BotAI):
 
 
 		if enemyThreats.exists:
-			topscore = -1000
+			topscore = -10000
 			topEnemy = None			
 			for enemy in enemyThreats:
 				score = 0
 				dpsperhp = 0
-				
+				#take 1000 points off if it's a building.
+				if enemy.is_structure:
+					
+					#get the distance away and subtract it as well.
+					dist = enemy.distance_to(unit_obj.unit) - unit_obj.unit.radius - enemy.radius
+					score = -1000 - dist
+					#unless it can attack, then treat it as a regular enemy.
+					if enemy.can_attack_air or enemy.can_attack_ground or enemy.name == 'Pylon':
+						score += 1000
+						
 				if (enemy.health + enemy.shield) > 0:
 					if unit_obj.unit.is_flying:
 						dpsperhp = enemy.air_dps / (enemy.health + enemy.shield)
@@ -827,36 +955,25 @@ class AdditionalPylons(sc2.BotAI):
 					dpsperhp = dpsperhp * 100
 
 				score += dpsperhp
-				#kill medivacs off first if at all possible.
-				if enemy.name == 'Medivac':
-					score += 300
-				if enemy.name == 'SCV' and not self.defend_only:
-					score += 100
-				if enemy.name == 'SiegeTank':
-					score += 300		
-				if enemy.name == 'Battlecruiser':
-					score += 350
-				if enemy.name == 'Carrier':
-					score += 350
-				if enemy.name == 'Infestor':
-					score += 300
-				if enemy.name == 'BroodLord':
-					score += 300
-				if enemy.name == 'WidowMine':
-					score += 300
-				if enemy.name == 'Interceptor':
-					score = 0
+				#the a score bonus from the unit object.
+				score += unit_obj.getTargetBonus(enemy.name)
+				#adjust for SCV's when defending.
+				if enemy.name == 'SCV' and self.defend_only:
+				 	score -= 100
+				#don't target interceptors.
+				elif enemy.name == 'Interceptor':
+				 	score = 0				
 				#distance to enemy matters.  Use % of max range distance, then subtract it from 100.
-				dist = enemy.distance_to(unit_obj.unit) - unit_obj.unit.radius - enemy.radius
-				perc = 0
-				# if dist > 0:
-				# 	if unit_obj.unit.is_flying:
-				# 		perc = ((unit_obj.unit.air_range / dist) / 2)
-				# 	else:
-				# 		perc = ((unit_obj.unit.ground_range / dist) / 2)
-				# 		
-				#if we are in their range, they are more dangerous, double distance score.
-				score += perc
+				# dist = enemy.distance_to(unit_obj.unit) - unit_obj.unit.radius - enemy.radius
+				# perc = 0
+				# # if dist > 0:
+				# # 	if unit_obj.unit.is_flying:
+				# # 		perc = ((unit_obj.unit.air_range / dist) / 2)
+				# # 	else:
+				# # 		perc = ((unit_obj.unit.ground_range / dist) / 2)
+				# # 		
+				# #if we are in their range, they are more dangerous, double distance score.
+				# score += perc
 				#calculate their DPS per HP remaining.  The higher DPS per HP remaining, the more valuable.
 				#show some debuging.
 				# if _debug or unit.is_selected:
@@ -886,6 +1003,10 @@ class AdditionalPylons(sc2.BotAI):
 			enemy_attack_range = 10
 		if enemy.name == 'SiegeTankSieged':
 			enemy_attack_range = 10
+		# if enemy.name == 'PlanetaryFortress':
+		# 	enemy_attack_range = 6
+		if enemy.name == 'WidowMine':
+			enemy_attack_range = 5
 
 		unit_attack_range = 0
 		if unit_obj.unit.can_attack_ground and not enemy.is_flying:
@@ -909,7 +1030,7 @@ class AdditionalPylons(sc2.BotAI):
 	
 		#check it has 0 range, then it's probably a building, so let's shorten things by 1 for better viewing and to enable more units behind us.
 		if enemy_attack_range == 0 and enemy.is_structure:
-			use_range -= 2
+			use_range = 2
 		# 	
 		# if enemy_attack_range == 0:
 		# 	print ('0 range', enemy.name)
@@ -919,9 +1040,9 @@ class AdditionalPylons(sc2.BotAI):
 		# 	
 		# 	
 		# 
-		# if use_range >= unit_attack_range:
-		# 	print ('cheat kiting', unit_obj.unit.name, enemy.name)
-		# 	use_range = unit_attack_range - 0.1
+		if use_range >= unit_attack_range:
+			#print ('cheat kiting', unit_obj.unit.name, enemy.name)
+			use_range = unit_attack_range - 0.1
 
 		#things with no range themselves like carriers and disruptors.
 		if enemy_attack_range > unit_attack_range and unit_attack_range == 0:			
@@ -929,17 +1050,16 @@ class AdditionalPylons(sc2.BotAI):
 			if use_range < 8:
 				use_range = 8
 		
-		
+		if unit_obj.unit.name == 'VoidRay':
+			use_range += 1		
 		#get the distance of the enemy - our attack range and move that far back.
 		dist = unit_obj.unit.distance_to(enemy) - (unit_obj.unit.radius + enemy.radius + use_range)
+
 		#move away from the target that much.
 		if unit_obj.unit.position != enemy.position:
 			targetpoint = unit_obj.unit.position.towards(enemy.position, distance=dist)		
 			return targetpoint
 
-		
-			
-			
 	def findBestKiteTarget(self, targetpoint, enemy):
 		#build a grid around the targetpoint and select the highest value point.
 		fullRetreatPoints = self.retreatGrid(targetpoint, size=4)
@@ -953,7 +1073,6 @@ class AdditionalPylons(sc2.BotAI):
 		retreatPoint = self.findBestPoint(fullRetreatPoints, enemy)
 		if retreatPoint:
 			return retreatPoint
-		
 
 	def findBestPoint(self, points, enemy):
 		goodPoints = []
@@ -1006,7 +1125,6 @@ class AdditionalPylons(sc2.BotAI):
 			retreatPoint = enemy.position.furthest(goodPoints)
 			return retreatPoint				
 
-		
 	def findKiteTarget(self, unit_obj, bonus_range=0):
 		#find the closest unit to us and move away from it.
 		unit_range = unit_obj.unit.ground_range + bonus_range
@@ -1014,7 +1132,17 @@ class AdditionalPylons(sc2.BotAI):
 			unit_range = unit_obj.unit.air_range + bonus_range
 
 		enemy_bonus_range = 0
-		kitables = unit_obj.closestEnemies.filter(lambda x: x.can_attack_ground or x.can_attack_air or x.name in ['Battlecruiser', 'Carrier'])
+		kitables = unit_obj.closestEnemies.filter(lambda x: x.name in ['Battlecruiser', 'Carrier', 'MissileTurret', 'WidowMine', 'Mothership', 'PhotonCannon', 'SpineCrawler', 'SporeCrawler'] \
+			or ((x.can_attack_ground or x.can_attack_air) and ( \
+				(x.ground_range + x.radius + unit_obj.unit.radius) < (x.radius + unit_obj.unit.radius + unit_range) \
+				and (x.air_range + x.radius + unit_obj.unit.radius) < (x.radius + unit_obj.unit.radius + unit_range)) \
+				and self.targetFacing(unit_obj, x)))
+
+
+
+		# enemy_total = (x.ground_range + x.radius + unit_obj.unit.radius)
+		# unit_total = x.radius + unit_obj.unit.radius
+		# 	(x.ground_range + x.radius +  < unit_range and x.air_range < unit_range)
 
 		if unit_obj.unit.name == 'Colossus':
 			#any enemy that can attack ground or air.
@@ -1023,9 +1151,44 @@ class AdditionalPylons(sc2.BotAI):
 				return enemyThreats[0]
 
 		#stay out of enemy range.
-		enemyThreats = kitables.filter(lambda x: (x.target_in_range(unit_obj.unit, bonus_distance=1) or x.name in ['Battlecruiser', 'Carrier']) and (x.ground_range <= unit_range or x.air_range <= unit_range)).sorted(lambda x: x.distance_to(unit_obj.unit))
+		if unit_obj.unit.can_attack_air:
+			enemyThreats = kitables.filter(lambda x: (x.target_in_range(unit_obj.unit, bonus_distance=1) or x.name in ['Battlecruiser', 'Carrier']) and (x.ground_range <= unit_range or x.air_range <= unit_range)).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]
+		else:
+			enemyThreats = kitables.filter(lambda x: (not x.is_flying and x.target_in_range(unit_obj.unit, bonus_distance=1) and x.ground_range <= unit_range) or x.name in ['PlanetaryFortress']).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]			
+		#if nothing has us in range, find out what we have in our range.
+		enemyThreats = kitables.filter(lambda x: unit_obj.unit.target_in_range(x, bonus_distance=bonus_range)).sorted(lambda x: x.distance_to(unit_obj.unit))
 		if enemyThreats:
 			return enemyThreats[0]
+		
+		
+	def findKiteTarget_KitesAll(self, unit_obj, bonus_range=0):
+		#find the closest unit to us and move away from it.
+		unit_range = unit_obj.unit.ground_range + bonus_range
+		if unit_obj.unit.air_range > unit_obj.unit.ground_range:
+			unit_range = unit_obj.unit.air_range + bonus_range
+
+		enemy_bonus_range = 0
+		kitables = unit_obj.closestEnemies.filter(lambda x: x.name in ['Battlecruiser', 'Carrier', 'MissileTurret', 'WidowMine', 'Mothership', 'PhotonCannon', 'SpineCrawler', 'SporeCrawler', 'PlanetaryFortress'] or ((x.can_attack_ground or x.can_attack_air) and self.targetFacing(unit_obj, x)))
+
+		if unit_obj.unit.name == 'Colossus':
+			#any enemy that can attack ground or air.
+			enemyThreats = kitables.closer_than(9 + bonus_range, unit_obj.unit).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]
+
+		#stay out of enemy range.
+		if unit_obj.unit.can_attack_air:
+			enemyThreats = kitables.filter(lambda x: (x.target_in_range(unit_obj.unit, bonus_distance=1) or x.name in ['Battlecruiser', 'Carrier', 'PlanetaryFortress']) and (x.ground_range <= unit_range or x.air_range <= unit_range)).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]
+		else:
+			enemyThreats = kitables.filter(lambda x: (not x.is_flying and x.target_in_range(unit_obj.unit, bonus_distance=1) and x.ground_range <= unit_range) or x.name in ['PlanetaryFortress']).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]			
 		#if nothing has us in range, find out what we have in our range.
 		enemyThreats = kitables.filter(lambda x: unit_obj.unit.target_in_range(x, bonus_distance=bonus_range)).sorted(lambda x: x.distance_to(unit_obj.unit))
 		if enemyThreats:
@@ -1107,7 +1270,7 @@ class AdditionalPylons(sc2.BotAI):
 			if dist < closestDistance:
 				closestDodge = position
 				closestDistance = dist
-		if closestDistance < 2:
+		if closestDistance < 5.5:
 			return closestDodge
 		return None
 	
@@ -1344,7 +1507,7 @@ class AdditionalPylons(sc2.BotAI):
 		if not self.defeat_detected and self._strat_manager.checkDefeat() and self.cached_enemies.structure.amount > 0:
 			self.defeat_detected = self.time + 10
 			#print ('lost', self.defeat_detected)
-			self._training_data.removeResult(self.opp_id, self.match_id)
+			self._training_data.removeResult(self.opp_id, self.match_id, self.enemy_race)
 			self._training_data.saveResult(self.opp_id, self._strat_manager.strat_id, 'l', self.match_id, self.enemy_race, self.map_name)
 			if not self.gg_said:
 				await self._client.chat_send(self._strat_manager.unitCounter.getLossSaying(), team_only=False)
@@ -1355,7 +1518,7 @@ class AdditionalPylons(sc2.BotAI):
 		if self.defeat_detected and self.units.structure.amount >= 5:
 			self.defeat_detected = None
 			#print ('not dead yet')
-			self._training_data.removeResult(self.opp_id, self.match_id)
+			self._training_data.removeResult(self.opp_id, self.match_id, self.enemy_race)
 			#divert back to win.
 			self._training_data.saveResult(self.opp_id, self._strat_manager.strat_id, 'w', self.match_id, self.enemy_race, self.map_name)
 			if not self.alive_said:
@@ -1373,9 +1536,9 @@ class AdditionalPylons(sc2.BotAI):
 
 
 	def loadStart(self):
-		#self.map_name = "{}-{}-{}".format(self.game_info._proto.map_name, self.game_info.player_start_location.x, self.game_info.player_start_location.y)
+		self.map_name = "{}-{}-{}".format(self.game_info._proto.map_name, self.game_info.player_start_location.x, self.game_info.player_start_location.y)
 		#get map width and height:
-		self.map_name = 'NoMapSeeding'
+		#self.map_name = 'NoMapSeeding'
 		#self._game_info.pathing_grid.width
 		if not self.opp_id:
 			if self.enemy_race == Race.Zerg:
@@ -1387,6 +1550,7 @@ class AdditionalPylons(sc2.BotAI):
 			else:
 				self.opp_id = 5			
 		#load up the pickle info and the opp info.
+		print ('playing vs', self.opp_id)
 		self._training_data.loadData()
 		#set the worker time as now.
 		self.worker_moved = self.time
@@ -1396,29 +1560,53 @@ class AdditionalPylons(sc2.BotAI):
 		self._strat_manager.strat_id = self._training_data.findStrat(self.opp_id, self.enemy_race, self.map_name)
 		if _test_strat_id > 0:
 			self._strat_manager.strat_id = _test_strat_id
+			
 		print ('using strat:', self._strat_manager.strat_id)
 		#save this as a victory in case the opponent crashes or leaves before we are able to log it.
 		#get length of training data.
 		trainingLen = len(self._training_data.data_dict.items())
-		oppLen = self._training_data.totalOppDataCount(self.opp_id)
+		oppLen = self._training_data.totalOppDataCount(self.opp_id, self.enemy_race)
 		trainingLen = self._training_data.totalDataCount()
 		self._training_data.saveResult(self.opp_id, self._strat_manager.strat_id, 'w', self.match_id, self.enemy_race, self.map_name)
-		self.intro_value = "{version}:{strat_id}.{olen}.{tlen}".format(version=_version, strat_id=self._strat_manager.strat_id, tlen=trainingLen, olen=oppLen)
+		self.intro_value = "(glhf) {version}:{strat_id}.{olen}.{tlen}".format(version=_version, strat_id=self._strat_manager.strat_id, tlen=trainingLen, olen=oppLen)
 		#print (self.intro_value)
+
+
 		#load up the units the opp used the last time.
-		self.opp_unit_history = self._training_data.getOppHistory(self.opp_id)
+		#self.opp_unit_history = None
+		self.opp_unit_history = self._training_data.getOppHistory(self.opp_id, self.enemy_race)
 		if self.opp_unit_history:
-			#print (self.opp_unit_history)
 			self.start_unit_ratio = self._strat_manager.calc_starter_counters(self.opp_unit_history)
-		
+
+		#get the heightmap offset.	
 		nexus = self.units(NEXUS).ready.random
 		if nexus:
 			hmval = self.getHeight(nexus.position)
 			self.hm_offset = hmval - nexus.position3d.z - 1		
 		
+
+	def trackWidowmines(self):
+		if len(self.cached_enemies(WIDOWMINEBURROWED )) > 0:
+			for unit in self.cached_enemies(WIDOWMINEBURROWED ):
+				self.burrowed_mines.update({unit.tag:unit.position})
+		#remove all widowmines from the list.
+		if len(self.cached_enemies(WIDOWMINE)) > 0:
+			for unit in self.cached_enemies(WIDOWMINE):
+				self.removeWidowmine(unit.tag)
+
+
+	def removeWidowmine(self, unit_tag):
+		if self.burrowed_mines.get(unit_tag):
+			#found remove it.
+			del self.burrowed_mines[unit_tag]
+		
 		
 
 	def getDefensivePoint(self):
+		#make sure nexus exists.
+		if len(self.units(NEXUS)) == 0:
+			return
+		
 		#get the center point of our nexus.
 		center = self.units(NEXUS).center
 		#print ('center', center)
@@ -1460,7 +1648,7 @@ class AdditionalPylons(sc2.BotAI):
 
 	def getEnemyCenteredStats(self, unit_obj, enemy_range=10):
 		#find all the enemy units that are near us.
-		enemyThreatsClose = unit_obj.closestEnemies.closer_than(enemy_range, unit_obj.unit).filter(lambda x: x.can_attack_air or x.can_attack_ground)
+		enemyThreatsClose = unit_obj.closestEnemies.closer_than(enemy_range, unit_obj.unit).filter(lambda x: x.name not in ['Probe', 'SCV', 'Drone'] and (x.can_attack_air or x.can_attack_ground))
 
 		enemyGroundtoAirDPS = 0
 		enemyAirtoGroundDPS = 0
@@ -1705,6 +1893,8 @@ class AdditionalPylons(sc2.BotAI):
 ##################
 #unorganized code#
 ##################
+	
+
 	
 	def _get_next_expansion(self):
 		locations = []
@@ -2042,13 +2232,15 @@ class AdditionalPylons(sc2.BotAI):
 
 	@property
 	def queuedGates(self) -> bool:
-		#get from buildling list directly in future.
 		return self.buildingList.gatesQueued
 	
 	@property
 	def queuedStarGates(self) -> bool:
 		return self.buildingList.stargatesQueued
 
+	@property
+	def queuedRobos(self) -> bool:
+		return self.buildingList.robosQueued
 		
 	@property
 	def allQueued(self) -> bool:
@@ -2178,6 +2370,15 @@ class AdditionalPylons(sc2.BotAI):
 			return False
 		if self.under_attack and self.minerals < 1000 and not self.reaper_cheese:
 			return False
+		
+		#check to see if we need another base for more gas.
+		if self.minerals > 2500 and self.vespene < 500 and self.state.creep[int(self.expPos.x), int(self.expPos.y)] == 0:
+			self._build_manager.last_build = 5
+			await self.expand_now(location=self.expPos)
+			self.can_spend = False
+			return
+
+		
 		#count needed workers.
 		workers_needed = 0
 		total_ideal = 0
@@ -2194,7 +2395,11 @@ class AdditionalPylons(sc2.BotAI):
 			
 		if workers_needed <= 0 and self.state.creep[int(self.expPos.x), int(self.expPos.y)] == 0:
 			#print ('expand', workers_needed)
+			#check to see if the area is clear of enemy before expanding.  If it is, move on to the next one.
+			
+			self._build_manager.last_build = 5
 			await self.expand_now(location=self.expPos)
+			self.can_spend = False
 
 
 #Bot(Race.Protoss, CannonRushBot())

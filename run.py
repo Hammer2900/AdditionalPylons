@@ -19,9 +19,9 @@ _difficulty = random.choice([Difficulty.CheatInsane, Difficulty.CheatMoney, Diff
 
 _realtime = False
 
-_difficulty = Difficulty.VeryEasy #CheatInsane, CheatMoney, CheatVision
+_difficulty = Difficulty.CheatInsane #CheatInsane, CheatMoney, CheatVision
 _opponent = random.choice([Race.Zerg, Race.Terran, Race.Protoss, Race.Random])
-_opponent = Race.Random
+_opponent = Race.Terran
 
 # Start game
 if __name__ == '__main__':

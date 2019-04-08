@@ -56,6 +56,19 @@ class Phoenix:
 		self.scout = None
 		self.beam_unit = None
 		self.base_searched = False
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 
 
 	def make_decision(self, game, unit):
@@ -166,16 +179,23 @@ class Phoenix:
 			self.label = 'Full Regen'
 			self.last_target = None	
 			return #chillin until healed
-			
-		#8 find the enemy
-		if self.game.searchEnemies(self):
-			self.label = 'Searching'
-			return #looking for targets
+		
+		if self.closestEnemies.amount == 0:
+			#8 find the enemy
+			if self.game.searchEnemies(self):
+				self.label = 'Searching'
+				return #looking for targets
+		else:
+			#see if gravbeam is up, if so, find a target to get with it.
+			if self.gravTarget():
+				self.label = 'Moving Grav'
+				return
 
 		self.label = 'Idle'
 
 
-
+	def gravTarget(self):
+		return False
 
 	def searchEnemies(self):
 		#search for enemies
@@ -241,7 +261,11 @@ class Phoenix:
 		return False
 					
 	
-	
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0	
 	
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))

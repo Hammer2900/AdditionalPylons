@@ -43,7 +43,20 @@ class Disruptor:
 		self.saved_position = None
 		self.last_action = ''
 		self.last_target = None
-		self.label = 'Idle'		
+		self.label = 'Idle'
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
@@ -119,7 +132,11 @@ class Disruptor:
 	def findKiteBackTarget(self, enemy):
 		#find out what our attack range is.
 		#get the distance of the enemy - our attack range and move that far back.
-		dist = self.unit.distance_to(enemy) - (8 + enemy.radius)
+		dist = 0
+		if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities and self.game.can_afford(EFFECT_PURIFICATIONNOVA):
+			dist = self.unit.distance_to(enemy) - (8 + enemy.radius)
+		else:
+			dist = self.unit.distance_to(enemy) - (12 + enemy.radius)
 		#move away from the target that much.
 		targetpoint = self.unit.position.towards(enemy.position, distance=dist)
 		return targetpoint
@@ -145,13 +162,19 @@ class Disruptor:
 
 	def findKiteTarget(self):
 		#find the closest unit to us and move away from it.
-		enemyThreats = self.closestEnemies.not_structure.closer_than(8, self.unit).sorted(lambda x: x.distance_to(self.unit))
+		enemyThreats = self.closestEnemies.not_structure.closer_than(12, self.unit).sorted(lambda x: x.distance_to(self.unit))
 		if enemyThreats:
 			return enemyThreats[0]
 
 	def sendNova(self):
 		#EFFECT_PURIFICATIONNOVA
 		#targetEnemy = self.game.findGroundTarget(self.unit, can_target_air=False, max_enemy_distance=8)
+		#check to see if a nova exists already, if so, wait.
+		if len(self.game.units(DISRUPTORPHASED)) > 0:
+			#check to see if they re close to us.
+			if len(self.game.units(DISRUPTORPHASED).closer_than(10, self.unit)) > 0:
+				return False
+		
 		targetEnemy = self.findNovaTarget()
 		if targetEnemy:
 			if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities and self.game.can_afford(EFFECT_PURIFICATIONNOVA):
@@ -178,8 +201,13 @@ class Disruptor:
 				if not friendlies:
 					return closestEnemy
 		return None
-
-
+	
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
+		
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))		
 		if actionStr == self.last_action:

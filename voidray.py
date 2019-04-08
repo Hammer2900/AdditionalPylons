@@ -53,7 +53,19 @@ class VoidRay:
 		self.last_target = None
 		self.label = 'Idle'
 		self.last_attack_start = 0
-		
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 		
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
@@ -80,9 +92,9 @@ class VoidRay:
 				self.label = 'Retreating Safe'
 				return #staying alive
 			
-			if (self.last_attack_start + 1.305) > self.game.time:
-				self.label = 'Continued Attacking'
-				return #still attacking.
+			# if (self.last_attack_start + 1.305) > self.game.time:
+			# 	self.label = 'Continued Attacking'
+			# 	return #still attacking.
 
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
@@ -153,6 +165,13 @@ class VoidRay:
 				if AbilityId.EFFECT_VOIDRAYPRISMATICALIGNMENT in self.abilities and self.game.can_afford(EFFECT_VOIDRAYPRISMATICALIGNMENT):
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_VOIDRAYPRISMATICALIGNMENT))
 					return True
+
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
 
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))		

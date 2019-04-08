@@ -45,7 +45,11 @@ class UnitList():
 	def remove_object(self, unit_tag):
 		if self.unit_objects.get(unit_tag):
 			unit_obj = self.unit_objects.get(unit_tag)
-			
+			#check to see if it's a probe, if so remove it from gathering.
+			if unit_obj.unit.name == 'Probe':
+				unit_obj.removeGatherer()
+			if unit_obj.unit.name == 'DisruptorPhased':
+				unit_obj.clearMines()
 			#check to see if it's our probe scout, if so create another.
 			# if unit_obj.unit.name == 'Probe' and unit_obj.scout:
 			# 	#was a scout, create a new one.

@@ -55,7 +55,19 @@ class Probe:
 		self.gather_target = None
 		self.vas_miner = False
 		self.next_assim_update = 0
-		
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 		
 	def make_decision(self, game, unit):
 		self.game = game
@@ -69,7 +81,7 @@ class Probe:
 		self.target_vespene = self.game._strat_manager.target_vespene
 		#print ('t', self.assigned)
 
-		if self.game.rush_detected and not self.collect_only and self.unit.shield > 15:
+		if (self.game.rush_detected or self.game.workerAllin) and not self.collect_only and self.unit.shield > 15:
 			self.rush_defender = True
 			self.lite_defender = False			
 			self.removeGatherer()
@@ -261,7 +273,7 @@ class Probe:
 			return #moving to next target.
 		
 		#no enemies exist, go back to work.
-		if self.game.units.of_type([PROBE,SCV,DRONE,REAPER]).amount == 0:
+		if len(self.game.cached_enemies.of_type([PROBE,SCV,DRONE,REAPER,ZERGLING,ZEALOT])) == 0:
 			self.rush_defender = False
 	
 
@@ -416,6 +428,15 @@ class Probe:
 		if self.vas_miner and self.game.time > self.next_assim_update:
 			update_time = 5
 			assim = self.game.units.find_by_tag(self.gather_target.tag)
+			if len(self.game._worker_assignments) == 0:
+				#nobody is mining, we need to switch.
+				if not self.game.worker_force_leave:
+					self.gather_target = None
+					self.vas_miner = False
+					self.game.worker_force_leave = True
+					self.removeGatherer()
+				else:
+					update_time = 1			
 			if assim and assim.assigned_harvesters > assim.ideal_harvesters:
 				#overcrowded, leave - but only if no other probes have already lef this frame.
 				if not self.game.worker_force_leave:
@@ -511,8 +532,10 @@ class Probe:
 		if self.game.worker_force_leave:
 			return None
 		for assimilator in self.game.units(ASSIMILATOR).ready.filter(lambda x:x.vespene_contents > 0 and x.assigned_harvesters < 3).sorted(lambda x: x.distance_to(self.unit.position)):
-			#print (self.unit.tag, 'gas found')
-			return assimilator
+			#make sure there is a nexus near the assimilator.
+			if self.game.units(NEXUS).ready.closer_than(10, assimilator):
+				#print (self.unit.tag, 'gas found')
+				return assimilator
 		return None
 		
 	def findMinerals(self):
@@ -621,6 +644,12 @@ class Probe:
 #Properties and Must Have Functions#
 ####################################
 
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0			
+			
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))
 		if actionStr == self.last_action:

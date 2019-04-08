@@ -52,6 +52,19 @@ class Carrier:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 		
 		
 	def make_decision(self, game, unit):
@@ -75,9 +88,9 @@ class Carrier:
 		if self.closestEnemies.amount > 0:
 			#see if we are able to escape if needed.
 			#2 keep safe again.
-			if self.game.keepSafe(self):
-				self.label = 'Retreating Death'
-				return #staying alive
+			# if self.game.keepSafe(self):
+			# 	self.label = 'Retreating Death'
+			# 	return #staying alive
 
 			#3 priority is to keep our distance from enemies
 			if self.KeepKiteRange():
@@ -161,7 +174,12 @@ class Carrier:
 		enemyThreats = self.closestEnemies.closer_than(10, self.unit).filter(lambda x: x.can_attack_air).sorted(lambda x: x.distance_to(self.unit))
 		if enemyThreats:
 			return enemyThreats[0]
-		
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0		
 
 
 	def checkNewAction(self, action, posx, posy):

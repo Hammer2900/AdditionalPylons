@@ -43,6 +43,7 @@ class Nexus:
 		#first check
 		self.firstframe = False
 		self.overworked = False
+		self.worker_allin = False
 		
 		
 	async def make_decision(self, game, unit):
@@ -72,6 +73,8 @@ class Nexus:
 		self.checkUnderAttack()
 		#check to see if we need workers
 		self.checkNeedWorkers()
+		#check for rush with workers.
+		self.detectWorkerAllIn()
 		#check to see if being cheesed.
 		#self.detectPersonalCheese()
 
@@ -100,8 +103,23 @@ class Nexus:
 
 
 
+	def detectWorkerAllIn(self):
+		self.worker_allin = False
+		if self.game.time > 480:
+			return #too late in the game for a worker rush.
+		#if we are under attack and if the enemy has brought a large number of workers, then we are being all-in rushed.
+		if self.game.cached_enemies.exclude_type([PROBE,DRONE,SCV]).closer_than(20, self.unit).amount > 10:
+			#under attack, see if workers are included.
+			if self.game.cached_enemies.of_type([PROBE,DRONE,SCV]).closer_than(20, self.unit).amount > 10:
+				self.worker_allin = True
+		
+		
+		
+
 	def detectPersonalCheese(self):
-		if self.game.cached_enemies.of_type([REAPER,BANSHEE]).closer_than(20, self.unit).amount > 1:
+		self.personal_cheese = False
+		return False
+		if self.game.cached_enemies.of_type([REAPER,BANSHEE]).closer_than(20, self.unit).amount > 3:
 			self.personal_cheese = True
 			#self.reaperCheeseDef()
 		else:
@@ -167,6 +185,11 @@ class Nexus:
 		if self.game.time < 120 and self.game.units(PYLON).amount == 0 and self.game.units(PROBE).amount >= 13:
 			return False #don't build another probe until we have a pylon out.
 		
+		#check to see if the probe will just die if it's made.
+		if self.game.units(PROBE).amount < 5 and self.game.cached_enemies.closer_than(20, self.unit).amount > 5:
+			return False #wait until things clear hopefully.
+		
+		
 		#check to see if workers are needed.
 		if self.game.buildingList.workersRequested:
 			#build worker, sent can_spend false.
@@ -207,7 +230,7 @@ class Nexus:
 				self.ineed_workers = True
 				self.overworked = False
 		else:
-			if self.game.units(PROBE).closer_than(20, self.unit).amount > total_workers_needed:
+			if self.game.units(PROBE).closer_than(20, self.unit).amount >= total_workers_needed:
 				self.ineed_workers = False
 				self.overworked = True
 		
@@ -237,6 +260,13 @@ class Nexus:
 		if AbilityId.EFFECT_CHRONOBOOSTENERGYCOST in self.abilities:
 			#check if research is being done and buff it if so.
 			#cyberneticcore
+			#if we are being attacked early in game, do the gateway first to get the unit out faster.
+			if self.game.cached_enemies.of_type([REAPER]).closer_than(40, self.unit).amount > 0:
+				for gateway in self.game.units(GATEWAY):
+					if not gateway.noqueue and gateway.orders[0].progress < 0.75 and not gateway.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+						self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, gateway))
+						break				
+		
 			for core in self.game.units(CYBERNETICSCORE):
 				if not core.noqueue and core.orders[0].progress < 0.75 and not core.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, core))
@@ -405,7 +435,11 @@ class Nexus:
 		
 	@property
 	def underAttack(self) -> bool:
-		return self.defending		
+		return self.defending
+	
+	@property
+	def underWorkerAllin(self) -> bool:
+		return self.worker_allin
 		
 	@property
 	def needWorkers(self) -> bool:

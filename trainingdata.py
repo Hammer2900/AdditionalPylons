@@ -18,274 +18,20 @@ class TrainingData:
 		#load the pickle data.
 		self.loadData()
 		self.strat_count = 6
+		self.best_win_per = 0
+		self.random_choice = True
+
+
+
 
 	def findStrat(self, opp_id, race, map_name):
 		#check if this is a new opponent.
+		#opp_id = "{}-{}".format(race, str(opp_id))
 		if not self.data_dict.get(opp_id):
-			#check for the best overall strat for this map and race.
-			best_id = self.bestMapRaceStrat(map_name, race)
-			if best_id:
-				return best_id
-			#check for the best overall strat for this map.
-			best_id = self.bestMapStrat(map_name)
-			if best_id:
-				return best_id			
-			#check for the best overall strat for this race.
-			best_id = self.bestRaceStrat(race)
-			if best_id:
-				return best_id			
-			#check for the best overall strat.
-			best_id = self.bestOverallStrat()
-			if best_id:
-				return best_id			
-			#well, it seems the database is completely empty, random time.
-			return random.randint(1, (self.strat_count - 1))
-		
-		#check based on the opp_id and map_name to see if we can get a strat_id.
-		optimal_id = self.bestOppMapStrat(opp_id, map_name)
-		if optimal_id:
-			return optimal_id
-		
-		#if we have never played on this map before, find the best strat we can find for this opponent in general.
-		gen_id = self.bestOppStrat(opp_id)
-		if gen_id:
-			return gen_id
-		
-		#if we still don't have a match, then it's just because we haven't won.   Just pick a random one.
-		return random.randint(1, (self.strat_count - 1))
-	
-
-###############
-#Strat Lookups#
-###############
-	
-	def bestRaceStrat(self, race):
-		strat_stats = {}
-		for opp_id, matches in self.data_dict.items():
-			for match in matches:			
-				#opp_id : match_id, strat_id, result, race, map
-				if strat_stats.get(match[1]) and match[3] == race:
-					#add to the results.
-					ss = strat_stats.get(match[1])
-					wins = ss[0]
-					losses = ss[1]
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1
-					#update the strat stats.
-					strat_stats.update({match[1]:[wins, losses]})
-				elif match[3] == race:
-					wins = 0
-					losses = 0
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1				
-					strat_stats.update({match[1]:[wins, losses]})
-
-		#get the win% of the strats and choose the best.
-		#if the best win% is below 50%, then make sure we have tried all strats.
-		if len(strat_stats) > 0:		
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				#print ('1 map tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-	
-	def bestMapRaceStrat(self, map_name, race):
-		strat_stats = {}
-		for opp_id, matches in self.data_dict.items():
-			for match in matches:
-				#opp_id : match_id, strat_id, result, race, map
-				if strat_stats.get(match[1]) and match[3] == race and match[4] == map_name:
-					#add to the results.
-					ss = strat_stats.get(match[1])
-					wins = ss[0]
-					losses = ss[1]
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1
-					#update the strat stats.
-					strat_stats.update({match[1]:[wins, losses]})
-				elif match[3] == race and match[4] == map_name:
-					wins = 0
-					losses = 0
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1				
-					strat_stats.update({match[1]:[wins, losses]})	
-		if len(strat_stats) > 0:
-			#get the win% of the strats and choose the best.
-			#if the best win% is below 50%, then make sure we have tried all strats.
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				#print ('1 map tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-
-	def bestOverallStrat(self):
-		strat_stats = {}
-		for opp_id, matches in self.data_dict.items():
-			for match in matches:
-				#opp_id : match_id, strat_id, result, race, map
-				if strat_stats.get(match[1]):
-					#add to the results.
-					ss = strat_stats.get(match[1])
-					wins = ss[0]
-					losses = ss[1]
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1
-					#update the strat stats.
-					strat_stats.update({match[1]:[wins, losses]})
-				else:
-					wins = 0
-					losses = 0
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1				
-					strat_stats.update({match[1]:[wins, losses]})
-		if len(strat_stats) > 0:
-			#get the win% of the strats and choose the best.
-			#if the best win% is below 50%, then make sure we have tried all strats.
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				#print ('over tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-
-	def bestMapStrat(self, map_name):
-		strat_stats = {}
-		for opp_id, matches in self.data_dict.items():
-			for match in matches:			
-				#opp_id : match_id, strat_id, result, race, map
-				if strat_stats.get(match[1]) and match[4] == map_name:
-					#add to the results.
-					ss = strat_stats.get(match[1])
-					wins = ss[0]
-					losses = ss[1]
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1
-					#update the strat stats.
-					strat_stats.update({match[1]:[wins, losses]})
-				elif match[4] == map_name:
-					wins = 0
-					losses = 0
-					if match[2] == 'w':
-						wins += 1
-					else:
-						losses += 1				
-					strat_stats.update({match[1]:[wins, losses]})
-		if len(strat_stats) > 0:
-			#get the win% of the strats and choose the best.
-			#if the best win% is below 50%, then make sure we have tried all strats.
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				#print ('1 map tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-		
-	def bestOppMapStrat(self, opp_id, map_name):
+			#start with strat_id 1.
+			return 1
 		opp_data = self.data_dict.get(opp_id)
-		strat_stats = {}
-		for match in opp_data:
-			#match_id, strat_id, result, race, map
-			
-			if strat_stats.get(match[1]) and match[4] == map_name:
-				#add to the results.
-				ss = strat_stats.get(match[1])
-				wins = ss[0]
-				losses = ss[1]
-				if match[2] == 'w':
-					wins += 1
-				else:
-					losses += 1
-				#update the strat stats.
-				strat_stats.update({match[1]:[wins, losses]})
-			elif match[4] == map_name:
-				wins = 0
-				losses = 0
-				if match[2] == 'w':
-					wins += 1
-				else:
-					losses += 1				
-				strat_stats.update({match[1]:[wins, losses]})
-		#get the win% of the strats and choose the best.
-		#if the best win% is below 50%, then make sure we have tried all strats.
-		if len(strat_stats) > 0:		
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				if results[0] + results[1] > 2:
-					self.cleanStrat(opp_id, strat_id, map_name)
-				#print ('opp map tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-				
-	def bestOppStrat(self, opp_id):
-		#this opponent has a history, lets find the best strat
-		opp_data = self.data_dict.get(opp_id)
+		#print (str(opp_data))
 		strat_stats = {}
 		for match in opp_data:
 			#match_id, strat_id, result, race, map
@@ -307,38 +53,67 @@ class TrainingData:
 					wins += 1
 				else:
 					losses += 1				
-				strat_stats.update({match[1]:[wins, losses]})
-		if len(strat_stats) > 0:				
-			#get the win% of the strats and choose the best.
-			#if the best win% is below 50%, then make sure we have tried all strats.
-			best_win = -1
-			best_strat = 0
-			available_strats = list(range(1, self.strat_count))
-			for strat_id, results in strat_stats.items():
-				winper = results[0] / (results[0] + results[1])
-				#print ('opp nomap tried', strat_id, winper, results[0], results[1])
-				available_strats.remove(strat_id)
-				if winper > best_win:
-					best_strat = strat_id
-					best_win = winper
-			if best_win < .50 and len(available_strats) > 0:
-				return random.choice(available_strats)
-			if best_win == 0:
-				return None
-			return best_strat
-		return None
-	
+				strat_stats.update({match[1]:[wins, losses]})		
+		best_strat = 0
+		best_winper = 0
+		best_losses = 0
+		strats = [1,2,3,4,5]
+		for key, val in strat_stats.items():
+			#print (key, val)
+			if key in strats:
+				strats.remove(key)
+			# else:
+			# 	print ('key', key, 'not found')
+			# 	print (str(strats))
+			winper = (val[0] / (val[0] + val[1])) * 100
+			print (key, val, winper)
+			if winper > best_winper:
+				best_strat = key
+				best_winper = winper
+				best_losses = val[1]
+			#check to see if we have too many.
+			if val[0] + val[1] >= 4:
+				self.cleanStrat(opp_id, key, map_name)
+		self.best_win_per = best_winper
+		self.random_choice = False
+		
+		if best_winper < 100 and len(strats) > 0:
+			self.best_win_per = 0
+			self.random_choice = True		
+			return random.choice(strats)
+		if best_strat == 0:
+			self.best_win_per = 0
+			self.random_choice = True			
+			return random.randint(1,5)
+		if best_winper < 50:
+			#loop all strats have the same amount of losses as the best strat.
+			strats = [1,2,3,4,5]
+			strats.remove(best_strat)
+			try_strats = []
+			for strat in strats:
+				print ('check strat', strat)
+				if strat_stats.get(strat):
+					val = strat_stats.get(strat)
+					print ('strat losses', val[1])
+
+					if val[1] < best_losses:
+						print ('found try', str(strat))
+						try_strats.append(strat)
+			if len(try_strats) > 0:
+				self.random_choice = True
+				return random.choice(try_strats)
+		return best_strat
+
+
 
 #################
 #Data Management#
 #################
 
 	def cleanStrat(self, opp_id, strat_id, map_name):
-		#get the list of match_ids of the opponenet and only keep the most recent 10 matches.
-		#opp_data = self.data_dict.get(opp_id)
-		opp_data = [x for x in self.data_dict.get(opp_id) if x[1] == strat_id and x[4] == map_name]
+		opp_data = [x for x in self.data_dict.get(opp_id) if x[1] == strat_id]
 		opp_data = sorted(opp_data, key=itemgetter(0), reverse=True)
-		del opp_data[9:]
+		del opp_data[4:]
 		#remove existing data for the strat_id and create a new list for the dictionary.
 		old_data = self.data_dict.get(opp_id)
 		for match in old_data:
@@ -348,8 +123,11 @@ class TrainingData:
 		self.data_dict.update({opp_id:opp_data})
 		#save the results to file.
 		self.saveData()
-
-	def removeResult(self, opp_id, match_id):
+		
+		
+		
+	def removeResult(self, opp_id, match_id, race):
+		#opp_id = "{}-{}".format(race, str(opp_id))
 		#remove the match from the list and save.
 		if not self.data_dict.get(opp_id):
 			print ('ut oh, where is the match?')
@@ -358,9 +136,10 @@ class TrainingData:
 		opp_data = [x for x in self.data_dict.get(opp_id) if not x[0] == match_id]
 		self.data_dict.update({opp_id:opp_data})
 		#save the results to file.
-		self.saveData()			
+		self.saveData()				
 
 	def saveResult(self, opp_id, strat_id, result, match_id, race, map_name):
+		#opp_id = "{}-{}".format(race, str(opp_id))
 		if not self.data_dict.get(opp_id):
 			#this is a new opponent, add the entry to the dictionary.
 			self.data_dict.update({opp_id: [[match_id, strat_id, result, race, map_name]]})
@@ -370,12 +149,15 @@ class TrainingData:
 			opp_data.append([match_id, strat_id, result, race, map_name])
 			self.data_dict.update({opp_id:opp_data})
 		#save the results to file.
-		self.saveData()		
+		self.saveData()			
+
 	
-	def getOppHistory(self, opp_id):
+	def getOppHistory(self, opp_id, race):
+		#opp_id = "{}-{}".format(race, str(opp_id))
 		return self.opp_units.get(opp_id)
 	
-	def saveUnitResult(self, opp_id, units):
+	def saveUnitResult(self, opp_id, units, race):
+		#opp_id = "{}-{}".format(race, str(opp_id))
 		#only saving the last games units, so always just overwrite the previous.
 		self.opp_units.update({opp_id:units})
 		#now save it.
@@ -394,7 +176,7 @@ class TrainingData:
 
 	def loadData(self):
 		try:
-			with open("data/res2.dat", "rb") as fp:
+			with open("data/res.dat", "rb") as fp:
 				self.data_dict = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.data_dict = {}
@@ -404,11 +186,11 @@ class TrainingData:
 				self.opp_units = pickle.load(fp)
 		except (OSError, IOError) as e:
 			self.opp_units = {}
-			
+		
 
 	def saveData(self):
 		try:
-			with open("data/res2.dat", "wb") as fp:
+			with open("data/res.dat", "wb") as fp:
 				pickle.dump(self.data_dict, fp)
 		except (OSError, IOError) as e:
 			print (str(e))
@@ -416,7 +198,17 @@ class TrainingData:
 ########
 #Others#
 ########
-	def totalOppDataCount(self, opp):
+
+	def stratWinPer(self):
+		if self.random_choice:
+			return ' (Random)'
+		else:
+			return ' ({}% win)'.format(self.best_win_per)
+
+		
+
+	def totalOppDataCount(self, opp, race):
+		#opp = "{}-{}".format(race, str(opp))
 		if self.data_dict.get(opp):
 			return len(self.data_dict.get(opp))	
 		return 0

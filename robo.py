@@ -65,6 +65,8 @@ class Robo:
 			return
 		#get unit to train
 		trainee = self.bestTrain()
+		if trainee == 'Observer' and len(self.game.units(OBSERVER)) >= 5:
+			return False
 		if trainee:
 			self.game.combinedActions.append(self.unit.train(self.unitCounter.getUnitID(trainee)))
 			self.game.can_spend = False

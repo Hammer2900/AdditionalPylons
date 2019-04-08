@@ -52,10 +52,10 @@ class Twilight:
 			return
 						
 		#see if we can research anything.
-		if self.researchCharge():
-			return 
 		if self.researchBlink():
 			return
+		if self.researchCharge():
+			return 
 		if self.researchGlaives():
 			return
 		

@@ -51,19 +51,7 @@ class Sentry:
 		self.label = 'Idle'
 		self.shielded = False
 		self.shield_time = None
-		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
-		}
+
 	
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position
@@ -81,78 +69,7 @@ class Sentry:
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 
 
-
 	def runList(self):
-		if not self.unit.is_ready:
-			return #warping in
-		self.shield_status()
-		self.closestEnemies = self.game.getUnitEnemies(self)
-		if self.closestEnemies.amount > 0:
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.				
-
-			#see if we need to shield our friends.
-			if self.needShield():
-				self.label = 'Shield Activated'
-				return
-			
-			#see if we are able to escape if needed.
-			if self.game.canEscape(self) and self.game.keepSafe(self):
-				self.label = 'Retreating Safe'
-				return #staying alive
-
-			#always attack if we can.
-			if self.game.attack(self):
-				self.label = 'Attacking'
-				return #attacked already this step.
-
-			#save our butts if we can
-			if self.game.keepSafe(self):
-				self.label = 'Retreating Death'
-				return #staying alive
-			
-			#3 priority is to keep our distance from enemies
-			if self.game.KeepKiteRange(self):
-				self.label = 'Kiting'
-				return #kiting
-
-			#look around our range and find the highest target value and move towards it.
-			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):
-				self.label = 'Moving Priority Target'
-				return #moving towards a better target.
-	
-		#hallucinate a phoenix to scout with.
-		if self.makeScout():
-			self.label = 'Creating Scout'
-			return				
-			
-		#if we are in defend mode and we aren't under attack, then go to the defend point.
-		if self.game.defend_only and not self.game.under_attack:
-			self.game.defend(self)
-			self.label = 'Defending'			
-			return #defending.
-
-		#move to friendly.
-		if self.game.moveToFriendlies(self):
-			self.label = 'Moving Friend'
-			return #moving to friend.	
-
-		#5 move the closest known enemy.
-		if self.game.moveToEnemies(self):
-			self.label = 'Moving Enemy'
-			return #moving to next target.
-	
-		#7 find the enemy
-		if self.game.searchEnemies(self):
-			self.label = 'Search'
-			return #looking for targets
-
-		self.label = 'Idle'
-
-
-	def runListSupport(self):
 		#if shield status
 		self.shield_status()
 		
@@ -225,12 +142,15 @@ class Sentry:
 
 
 
-	def needShield(self):
+	def shieldFriends(self):
 		#if 2 enemies are ranged units and we have friendlies near us, then shield.
-		if self.closestEnemies.filter(lambda x: x.ground_range > 2 and x.target_in_range(self.unit)).amount >= 1:
-			if self.game.unitList.shieldSafe(self):
-				if self.activateShield():
-					return True
+		if self.closestEnemies.filter(lambda x: x.ground_range > 2).amount >= 2:
+			#check to see if we have friends near.
+			fUnits = self.game.units().exclude_type([SENTRY,WARPPRISM]).not_flying.filter(lambda x: x.can_attack_ground).closer_than(1.7, self.unit)
+			if fUnits and fUnits.amount > 1:
+				if self.game.unitList.shieldSafe(self):
+					if self.activateShield():
+						return True
 		return False
 			
 			
@@ -243,7 +163,7 @@ class Sentry:
 		
 
 	def makeScout(self):
-		if (self.unit.energy > 150 or self.game.units(OBSERVER).ready.amount < 1 and self.game.defend_only) or self.game.time < 300:
+		if self.unit.energy > 150 or self.game.units(OBSERVER).ready.amount < 1 and self.game.defend_only:
 			if AbilityId.HALLUCINATION_PHOENIX in self.abilities and self.game.can_afford(HALLUCINATION_PHOENIX):
 				self.game.combinedActions.append(self.unit(AbilityId.HALLUCINATION_PHOENIX ))
 				return True
@@ -259,16 +179,61 @@ class Sentry:
 		return False
 
 
+	def shield_friendlies(self):
+		fUnits = self.game.units().exclude_type([SENTRY,WARPPRISM]).not_flying.filter(lambda x: x.can_attack_ground)
+		closestFriendly = None
+		if self.closestEnemies.exists and fUnits:
+			closestFriendly = fUnits.closest_to(self.game.known_enemy_units.closest_to(self.unit))
+		elif fUnits:
+			closestFriendly = fUnits.closest_to(self.unit)
+		if closestFriendly:
+			if self.unit.distance_to(closestFriendly) < 4:
+				#check to see if the unit is in danger and if it is, pop the shield.
+				enemyThreatsClose = self.closestEnemies.closer_than(8, closestFriendly)
+				if enemyThreatsClose.exists:
+					closestEnemy = enemyThreatsClose.closest_to(closestFriendly)
+					if closestEnemy.target_in_range(closestFriendly):
+						if self.game.unitList.shieldSafe(self):						
+							if self.activateShield():
+								return True
+						else:
+							if self.activateDecoy():
+								return True
+		return False
+
+	def center_friendlies(self):
+		#find all the ground units in our shield range and center on them.
+		friendlyClose_pos = self.game.units().not_flying.filter(lambda x: x.can_attack_ground).closer_than(4, self.unit).center
+		if friendlyClose_pos:
+			if self.unit.distance_to(friendlyClose_pos) > 2:
+				if self.checkNewAction('move', friendlyClose_pos.x, friendlyClose_pos.y):
+					self.game.combinedActions.append(self.unit.move(friendlyClose_pos))
+				self.last_target = Point3((friendlyClose_pos.x, friendlyClose_pos.y, self.game.getHeight(friendlyClose_pos)))
+				return True
+		return False
+
+	def move_friendlies(self):
+		#find the friendly unit that is closest to enemy and move towards it, or just move to the closest friendly if no enemies fround
+		fUnits = self.game.units().exclude_type([SENTRY,WARPPRISM,PROBE]).not_flying.filter(lambda x: x.can_attack_ground)
+		closestFriendly = None
+		if self.game.known_enemy_units.exists and fUnits:
+			closestFriendly = fUnits.closest_to(self.game.known_enemy_units.closest_to(self.unit))
+		elif fUnits:
+			closestFriendly = fUnits.closest_to(self.unit)
+		if closestFriendly:
+			#if we are not close to it, then our priority is to get there.
+			if self.unit.distance_to(closestFriendly) > 2:
+				if self.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
+					self.game.combinedActions.append(self.unit.move(closestFriendly))
+				self.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
+				return True
+		return False
+
 	def shield_status(self):
 		if self.shielded and self.shield_time >= self.game.time + 11:
 			self.shielded = False
 
-	def getTargetBonus(self, targetName):
-		if self.enemy_target_bonuses.get(targetName):
-			return self.enemy_target_bonuses.get(targetName)
-		else:
-			return 0
-		
+
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))
 		if actionStr == self.last_action:

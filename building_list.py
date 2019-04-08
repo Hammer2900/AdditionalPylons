@@ -33,8 +33,13 @@ class BuildingList():
 			return self.building_objects.get(unit_tag)
 		return None
 
-	def remove_object(self, unit_tag):
+	async def remove_object(self, unit_tag, game):
+		self.game = game
 		if self.building_objects.get(unit_tag):
+			obj = self.building_objects.get(unit_tag)
+			if obj.unit.name == 'Nexus':
+				self.game.getDefensivePoint()
+				self.game.expPos = await self.game.get_next_expansion()
 			del self.building_objects[unit_tag]
 		
 	def load_object(self, unit):
@@ -75,6 +80,13 @@ class BuildingList():
 			self.building_objects.update({unit.tag:obj})
 		#else:
 		# 	print ('Unit Created:', unit.name, unit.tag)
+
+	@property
+	def underWorkerAllin(self) -> bool:
+		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name == 'Nexus' and v.underWorkerAllin }
+		if len(baselist) > 0:
+			return True
+		return False
 		
 	@property
 	def workersRequested(self) -> bool:
@@ -121,7 +133,7 @@ class BuildingList():
 
 	@property
 	def gatesQueued(self) -> bool:
-		baselist = {k : v for k,v in self.building_objects.items() if (v.unit.name == 'Warpgate' or v.unit.name == 'Gateway') and not v.inQueue }
+		baselist = {k : v for k,v in self.building_objects.items() if (v.unit.name == 'WarpGate' or v.unit.name == 'Gateway') and not v.inQueue }
 		if len(baselist) > 0:
 			return False
 		return True
@@ -142,8 +154,7 @@ class BuildingList():
 	
 	@property
 	def allQueued(self) -> bool:
-	
-		blist = ['RoboticsFacility', 'Stargate', 'Warpgate', 'Gateway']
+		blist = ['RoboticsFacility', 'Stargate', 'WarpGate', 'Gateway']
 		baselist = {k : v for k,v in self.building_objects.items() if v.unit.name in blist and not v.inQueue }
 		if len(baselist) > 0:
 			return False

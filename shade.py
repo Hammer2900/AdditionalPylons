@@ -28,6 +28,20 @@ class Shade:
 		self.tried_positions = []
 		self.outs = 0
 		self.shade_start = None
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}
+		
 		
 	def make_decision(self, game, shade):
 		self.saved_position = shade.position #first line always.
@@ -77,6 +91,13 @@ class Shade:
 				self.game.combinedActions.append(self.shade.move(closestEnemy))
 			return True
 		return False
+
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
 	
 	def checkNewAction(self, action, posx, posy):
 		#actionStr = (action + '-' + str(int(posx)) + '-' + str(int(posy)))

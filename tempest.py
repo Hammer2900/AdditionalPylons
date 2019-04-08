@@ -57,6 +57,26 @@ class Tempest:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.enemy_target_bonuses = {
+			'Medivac': 3000,
+			'SCV': 1000,
+			'SiegeTank': 3250,
+			'Battlecruiser': 3500,
+			'Carrier': 3500,
+			'Infestor': 3000,
+			'BroodLord': 3000,
+			'WidowMine': 3000,
+			'Mothership': 6000,
+			'Viking': 3000,
+			'VikingFighter': 3000,		
+			'Phoenix': 3000,	
+			'VoidRay': 3000,
+			'Raven': 2500,
+			'Banshee': 2000,
+			'Tempest': 3500,
+		}
+		
+		
 		
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
@@ -131,6 +151,12 @@ class Tempest:
 			self.label = 'Searching'
 			return #looking for targets
 
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
 
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))

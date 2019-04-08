@@ -22,6 +22,19 @@ class DisruptorPhased:
 		self.saved_position = None
 		self.last_action = ''
 		self.life_start = None
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 
 		
 	def make_decision(self, game, unit):
@@ -56,7 +69,20 @@ class DisruptorPhased:
 		self.label = 'Nothing to do'
 		
 		
-		
+	def clearMines(self):
+		#self.saved_position
+		tags = []
+		if len(self.game.burrowed_mines) > 0:
+			for tag, position in self.game.burrowed_mines.items():
+				dist = self.unit.distance_to(position)
+				if dist < 2.5:
+					#remove widowmine
+					tags.append(tag)
+		for tag in tags:
+			self.game.removeWidowmine(tag)
+			self.game._strat_manager.remove_intel(tag)
+
+
 		
 	def moveToEnemies(self):
 		#change our range based on time left.
@@ -68,7 +94,20 @@ class DisruptorPhased:
 			mRange = 2
 		
 		#find target
-		our_target = self.game.findAOETarget(self, mRange, 1.5)
+		#check to see if there is a burrowed widowmine near us, if so lets kill it.
+		closestDistance = 10000
+		closestDodge = None
+		our_target = None
+		if len(self.game.burrowed_mines) > 0:
+			for tag, position in self.game.burrowed_mines.items():
+				dist = self.unit.distance_to(position)
+				if dist < closestDistance:
+					closestDodge = position
+					closestDistance = dist
+			if closestDistance < 5.5:
+				our_target = closestDodge
+		if not our_target:
+			our_target = self.game.findAOETarget(self, mRange, 1.5)
 		#if we have a target, then move to it.
 		if our_target:
 			if _debug:
@@ -86,6 +125,11 @@ class DisruptorPhased:
 			return True
 		return False
 		
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
 		
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))		

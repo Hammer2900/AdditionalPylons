@@ -52,7 +52,19 @@ class Stalker:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
-		
+		self.enemy_target_bonuses = {
+			'Medivac': 300,
+			'SCV': 100,
+			'SiegeTank': 300,
+			'Battlecruiser': 350,
+			'Carrier': 350,
+			'Infestor': 300,
+			'BroodLord': 300,
+			'WidowMine': 300,
+			'Mothership': 600,
+			'Viking': 300,
+			'VikingFighter': 300,		
+		}		
 		
 	def make_decision(self, game, unit):
 		self.game = game
@@ -75,6 +87,8 @@ class Stalker:
 		
 		
 	def runList(self):
+		if not self.unit.is_ready:
+			return #warping in		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
 			
@@ -150,10 +164,19 @@ class Stalker:
 		#make sure we can even blink.
 		if AbilityId.EFFECT_BLINK_STALKER in self.abilities and self.game.can_afford(EFFECT_BLINK_STALKER):
 			#check to see if the target is running away from us.
+			useblink = False
 			lead_position = self.game.leadTarget(targetEnemy)
 			#get distance from unit to enemy and distance from unit to lead position.
 			enemy_distance = self.unit.distance_to(targetEnemy)
-			if enemy_distance < 11 and enemy_distance > 6:
+			
+			if targetEnemy.movement_speed >= self.unit.movement_speed and enemy_distance < 11 and enemy_distance > 6:
+				useblink = True
+			elif targetEnemy.movement_speed < self.unit.movement_speed and enemy_distance > 9:
+				useblink = True
+				
+			#check if they are on differnt ground level and blink to them then in the future.
+			
+			if useblink:
 				overall = self.unit.distance_to(lead_position) - enemy_distance
 				if overall > 0:
 					#unit is running away, blink towards them.
@@ -175,6 +198,13 @@ class Stalker:
 				self.last_target = retreatPoint.position
 				return True
 		return False		
+
+	def getTargetBonus(self, targetName):
+		if self.enemy_target_bonuses.get(targetName):
+			return self.enemy_target_bonuses.get(targetName)
+		else:
+			return 0
+
 
 	def checkNewAction(self, action, posx, posy):
 		actionStr = (action + '-' + str(posx) + '-' + str(posy))
