@@ -7,12 +7,96 @@ class UnitCounter:
 	
 	def __init__(self):
 		
+		self.unitCosts = {
+			'Zealot': 2,
+			'Stalker': 2,
+			'Adept': 2,
+			'Sentry': 2,
+			'Immortal': 4,
+			'WarpPrism': 2,
+			'VoidRay': 4,
+			'Phoenix': 2,
+			'Colossus': 6,
+			'Tempest': 5,
+			'Carrier': 6,
+			'HighTemplar': 2,
+			'Disruptor': 3, 
+			'DarkTemplar': 2,
+			'Observer': 1,
+			'Mothership': 8
+		}
+		
 		#current power = supply * tier
 		self.unitPower = {
 			#zerg
+			'Overlord': 0.001,
+			'Baneling': 100,
+			'Zergling': 25,
+			'Hydralisk': 200,
+			'Mutalisk': 300,
+			'Ultralisk': 700,
+			'Roach': 125,
+			'Infestor': 400,
+			'Queen': 150,
+			'Overseer': 0.001,
+			'Ravager': 300,
+			'Lurker': 450,
+			'Corruptor': 350,
+			'Viper': 500,
+			'BroodLord': 800,
+			'SpineCrawler': 100,
+			'SporeCrawler': 75,
+			
+			#protoss
+			'Zealot': 100,
+			'Stalker': 225,
+			'Adept': 150,
+			'Sentry': 250,
+			'Immortal': 475,
+			'WarpPrism': 0.001,
+			'VoidRay': 550,
+			'Phoenix': 350,
+			'Colossus': 700,
+			'Tempest': 600,
+			'HighTemplar': 350,
+			'Disruptor': 450, 
+			'DarkTemplar': 375,
+			'Observer': 0.001,
+			'Archon': 700,
+			'PhotonCannon': 150,
+			'Oracle': 450,
+			'Carrier': 850,
+			'Mothership': 1200,
+			
+			#terran
+			'CommandCenter': 0.001,
+			'PlanetaryFortress': 850,
+			'Marine': 50,
+			'Reaper': 150,
+			'Marauder': 150,
+			'Ghost':  375,
+			'Hellion': 100,
+			'WidowMine': 125,
+			'Cyclone': 350,
+			'SiegeTank': 400,
+			'Thor': 700,
+			'Viking': 300,
+			'VikingFighter': 300,
+			'VikingAssault': 300,
+			'Medivac': 300,
+			'Liberator': 450,
+			'Raven': 500,
+			'Banshee': 350,
+			'Battlecruiser': 1000,
+			'MissileTurret': 100
+
+		}
+		
+		self.unitPowerOld = {
+			#zerg
 			'Overlord': 0.01,
 			'Baneling': 0.55,
-			'Zergling': 0.35,
+			'Zergling': 0.30,
 			'Hydralisk': 5,
 			'Mutalisk': 5,
 			'Ultralisk': 18,
@@ -51,6 +135,7 @@ class UnitCounter:
 			
 			#terran
 			'CommandCenter': 0.1,
+			'PlanetaryFortress': 10,
 			'Marine': 1.25,
 			'Reaper': 1,
 			'Marauder': 4,
@@ -72,8 +157,7 @@ class UnitCounter:
 
 			
 			
-		}
-		
+		}		
 		
 		self.supportTable = {
 			'Sentry': ['Ground', 20],
@@ -205,8 +289,9 @@ class UnitCounter:
 				[['Zealot', 12]],
 				],
 			'Tempest': [
-				[['VoidRay', 3], ['Phoenix', 1]],
-				[['Stalker', 3]],
+				[['Tempest', 1], ['Stalker', 1]],
+				[['Phoenix', 2],['Stalker', 2]],
+				[['Stalker', 4]],
 				],
 			'HighTemplar': [
 				[['Immortal', 1], ['Sentry', 0.5]],
@@ -227,21 +312,27 @@ class UnitCounter:
 				[['Zealot', 4]],
 				],
 			'Observer': [
-				[['Observer', 0.5]],
+				[['Observer', 0.01]],
 				],
 			'PhotonCannon': [
-				[['Immortal', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
-				[['Stalker', 2], ['Sentry', 0.5]],
+				[['Immortal', .5], ['Sentry', 0.25], ['Zealot', 0.05]],
+				[['Stalker', 2], ['Sentry', 0.25]],
 				[['Zealot', 3]],
 				],
 			'Mothership': [
-				[['VoidRay', 5]],
+				[['Tempest', 5]],
 				[['Stalker', 10], ['Sentry', 4]],
 			],
 
 			#terran counters
 			'CommandCenter':[
-				[['Zealot', 0.01]],
+#				[['Sentry', 0.05], ['Tempest', 1], ['Disruptor', 0.05], ['Observer', 1]],
+				[['Stalker', 0.02],['Sentry', 0.01]],
+				],
+			'PlanetaryFortress':[
+#				[['Tempest', 1]],
+				[['Immortal', 2], ['Sentry', 0.05], ['Zealot', 1]],	
+				[['Zealot', 3], ['Sentry', 0.05]],
 				],
 			'Marine': [
 				[['Colossus', 0.25]],
@@ -252,10 +343,8 @@ class UnitCounter:
 				[['Stalker', 2]],
 				],
 			'Marauder': [
-				[['Tempest', 1]],
-				[['VoidRay', 1]],
 				[['Immortal', 1], ['Sentry', 0.25], ['Zealot', 0.25]],
-				[['Zealot', 1], ['Sentry', 0.25], ['Zealot', 0.25]],
+				[['Zealot', 1], ['Sentry', 0.25]],
 				[['Zealot', 2]],
 				],
 			'Ghost':  [
@@ -268,18 +357,16 @@ class UnitCounter:
 				[['Zealot', 1]]
 				],
 			'WidowMine': [
-				[['Tempest', 1], ['Disruptor', 0.05], ['Observer', 1], ['Zealot', 0.05] ],
-				[['Stalker', 0.5], ['Observer', 1]],
+				[['Tempest', 1], ['Disruptor', 0.25], ['Observer', 1], ['Zealot', 0.5] ],
+				[['Stalker', 0.5], ['Observer', 0.5]],
 				],
 			'Cyclone': [
-				[['VoidRay', 0.5], ['Immortal', 0.5], ['Sentry', 0.5], ['Zealot', 0.25]],
-				[['VoidRay', 1], ['Zealot', 0.25]],
-				[['Immortal', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
+				[['Tempest', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				[['Zealot', 1]],
 				],
 			'SiegeTank': [
-				[['VoidRay', 1], ['Zealot', 0.25]],
+				[['Tempest', 1], ['Zealot', 2]],
 				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				[['Zealot', 2]],
 				],
@@ -289,42 +376,36 @@ class UnitCounter:
 				[['Zealot', 4]],
 				],
 			'Viking': [
-				[['Tempest', 1], ['Zealot', 0.25]],
-				[['VoidRay', 1], ['Zealot', 0.25]],
+#				[['Tempest', 1], ['Zealot', 0.25]],
 				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				],
 			'Medivac': [
-				[['Phoenix', 1]],
+#				[['Phoenix', 1]],
 				[['Stalker', 1]],
 				],
 			'Liberator': [
 				[['Tempest', 1], ['Zealot', 0.25]],
-				[['Phoenix', 1], ['Zealot', 0.25]],
 				[['Stalker', 2], ['Zealot', 0.25]],
 				],
 			'Raven': [
 				[['Tempest', 1], ['Zealot', 0.25]],
-				[['Phoenix', 1], ['Stalker', 1], ['Zealot', 0.25]],
+				[['Stalker', 1], ['Zealot', 0.25]],
 				[['Stalker', 2], ['Zealot', 0.25]],
 				],
 			'Banshee': [
-				[['Phoenix', 1], ['Observer', 2]],
 				[['Stalker', 1], ['Observer', 2]],
 				],
 			'Battlecruiser': [
 				[['Tempest', 3], ['Stalker', 1], ['Sentry', 0.25]],
-#				[['VoidRay', 2.5], ['Phoenix', 0.5]],
 				[['Stalker', 4], ['Sentry', 0.25]]
 				],
 			'VikingFighter': [
-				[['Carrier', 1], ['Zealot', 0.25]],
-				[['VoidRay', 2], ['Zealot', 0.25]],
-				[['Stalker', 2], ['Zealot', 0.25]],
+#				[['Tempest', 1], ['Zealot', 0.25]],
+				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				],
 			'VikingAssault': [
-				[['Carrier', 1], ['Zealot', 0.25]],
-				[['VoidRay', 2], ['Zealot', 0.25]],
-				[['Stalker', 2], ['Zealot', 0.25]],
+#				[['Tempest', 1], ['Zealot', 0.25]],
+				[['Stalker', 1], ['Sentry', 0.5], ['Zealot', 0.25]],
 				],
 			'MissileTurret': [
 				[['Immortal', 0.1], ['Zealot', 0.25]],
@@ -450,22 +531,36 @@ class UnitCounter:
 			'My IQ came back negative. (surprised)',
 			'If I only had a brain (speechless)',
 			'Roses are #FF0000, violets are #0000FF, all my base are belong to you. (kiss)',
-			'But I have people skills!',
+			'But I have people skills! (angry)',
+			"Ah, I see you have the machine that goes ping! (surprised)",
+			"Come and see the violence inherent in the system. Help! Help! I'm being repressed! (speechless)",
 			]
 
 		self.s1_complete = [
-			'I used to think I was indecisive, but now I am not so sure. (thinking)',
-			'Life is short, smile while you still have all your teeth. (happy)',
+			# 'I used to think I was indecisive, but now I am not so sure. (thinking)',
+			# 'Life is short, smile while you still have all your teeth. (happy)',
+			"Intro stage completed, moving to gamestate mode",
 			]		
 
 		self.s1_fail = [
-			'People say nothing is impossible, but I do nothing every day. (sleepy)',
-			'Everyone has a plan until they get punched in the mouth. (zipped)',
-			'It would be nice to spend resources on buildings and units, but right now they are desperately needed for more pylons.',
-			"You're killin' me, Smalls. (angry)",
+#			'People say nothing is impossible, but I do nothing every day. (sleepy)',
+#			'Everyone has a plan until they get punched in the mouth. (zipped)',
+#			'It would be nice to spend resources on buildings and units, but right now they are desperately needed for more pylons.',
+#			"You're killin' me, Smalls. (angry)",
+			"Intro stage failed, moving to gamestate mode",
 			]		
 
+		self.intro_descriptions = {
+			1 : 'One Base Opener',
+			2 : 'One Base Cannon Defense',
+			3 : 'Two Base Opener',	
+			4 : 'Two Base Cannon Defense',	
+			5 : 'Three Base Greedy',
+		}
 
+
+	def getIntroDescription(self, intro_id):
+		return self.intro_descriptions.get(intro_id)
 
 	def getLossSaying(self):
 		return random.choice(self.loss_sayings)
@@ -484,6 +579,9 @@ class UnitCounter:
 	
 	def getUnitTrainer(self, unit):
 		return self.unitTrainers.get(unit)
+
+	def getUnitCost(self, unit):
+		return self.unitCosts.get(unit)
 			
 	def getUnitPower(self, unit):
 		return self.unitPower.get(unit)
