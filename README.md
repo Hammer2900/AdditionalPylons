@@ -4,7 +4,7 @@ Starcraft 2 Bot written in python using the python-sc2 API.   Uses intelligence 
 Currently competes on the [Starcraft 2 AI ladder](http://sc2ai.net/)
 
 ## Prerequisites
-* Python3.6
+* Python3.7
 * [python-sc2](https://github.com/Dentosal/python-sc2) - SC2 API
 
 ## License
