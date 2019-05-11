@@ -2,6 +2,7 @@ import sc2
 from sc2.constants import *
 
 #our own classes
+from unit_counters import UnitCounter
 from warpprism import WarpPrism as wpControl
 from immortal import Immortal as imControl
 from stalker import Stalker as skControl
@@ -27,7 +28,7 @@ class UnitList():
 
 	def __init__(self):
 		self.unit_objects = {}
-		
+		self.unitCounter = UnitCounter()
 
 	def make_decisions(self, game):
 		self.game = game
@@ -50,6 +51,7 @@ class UnitList():
 				unit_obj.removeGatherer()
 			if unit_obj.unit.name == 'DisruptorPhased':
 				unit_obj.clearMines()
+				unit_obj.clearLurkers()
 			#check to see if it's our probe scout, if so create another.
 			# if unit_obj.unit.name == 'Probe' and unit_obj.scout:
 			# 	#was a scout, create a new one.
@@ -124,6 +126,21 @@ class UnitList():
 		# 	print ('Unit Created:', unit.name, unit.tag)
 		
 
+
+	def phaseTargets(self):
+		phaseList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'DisruptorPhased' }
+		targets = []
+		for key, phase in phaseList.items():
+			targets.append(phase.currentTarget)
+		return targets
+
+	def adeptOrder(self, ownerUnit):
+		#get the object by the unit_tag.
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.shadeOrder
+		return None
+
 	def assignScout(self):
 		#if it's late in the game and we aren't attacking, then don't make a replacement.
 		if self.game.defend_only and self.game.time > 360:
@@ -132,6 +149,7 @@ class UnitList():
 		probeList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Probe' and not v.collect_only and not v.scout }
 		for key, probe in probeList.items():
 			probe.becomeScout()
+			probe.removeGatherer()
 			return
 			
 
@@ -146,6 +164,35 @@ class UnitList():
 			return False
 		return True
 
+	def freeNexusBuilders(self):
+		probeList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Probe' and v.nexus_builder }
+		if len(probeList) > 0:
+			for key, probe in probeList.items():
+				probe.nexus_builder = False
+				probe.nexus_position = None
+
+	@property
+	def nexusBuilderAssigned(self) -> bool:
+		probeList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Probe' and v.nexus_builder }
+		if len(probeList) > 0:
+			return True
+		return False
+
+
+	@property
+	def hallucinationScore(self) -> int:
+		hallList = {k : v for k,v in self.unit_objects.items() if v.isHallucination }
+		hall_score = 0
+		for key, unit_obj in hallList.items():
+			hall_score += self.unitCounter.getUnitPower(unit_obj.unit.name)
+		return hall_score
+		
+
+	def phoenixScouting(self):
+		phoenixList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Phoenix' and v.isHallucination }
+		if len(phoenixList) > 0:
+			return True
+		return False
 
 	def getGravitonTarget(self, inc_unit):
 		phoenixList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'Phoenix' and v.isBeaming }

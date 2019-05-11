@@ -14,7 +14,7 @@ from unit_counters import UnitCounter
 This class makes our build/macro decisions.
 
 '''
-_debug = True
+_debug = False
 
 class Strategist:
 	
@@ -47,6 +47,7 @@ class Strategist:
 		self.enemy_intel = {}
 		self.counted_enemy = {}
 		self.ideal_army = {}
+		self.raw_all_counters = {}
 		self.able_army = {}
 		self.buildings_needed = {}
 		self.enemy_power = 0
@@ -105,6 +106,7 @@ class Strategist:
 		self.detect_reaper_cheese()
 		self.army_score()
 		self.detect_allinWorker_rush()
+		self.assign_nexus_builder()
 		#if self.game.minerals >= self.game.vespene:
 		if self.game.vespene < 500:
 			self.target_vespene = True
@@ -129,6 +131,7 @@ class Strategist:
 	
 		
 		self.attack_command()
+		self.check_rally()
 		if not self.stage1complete:
 			#run it based on the selected strat id.
 			if self.strat_id == 1:
@@ -147,28 +150,40 @@ class Strategist:
 				await self.setup_threebase()
 				self.train_queue()				
 			else:
-				self.build.build_pylon1 = True
-				self.build.build_pylon2 = True
-				self.build.build_pylon3 = True				
-				self.build.build_pylon4 = True				
 				self.stage1complete = True
-				self.build.can_build_assimilators = True				
-				self.build.can_build_pylons = True
+				if self.game.trueGates > 0:
+					self.build.can_build_assimilators = True
+				else:
+					self.build.can_build_assimilators = False
+				
+				#make sure we don't just build a bunch of pylons.
+				if len(self.game.units(PYLON)) > 0 and self.game.trueGates == 0:
+					self.build.can_build_pylons = False
+				else:
+					self.build.can_build_pylons = True
 			return
 		
 		if self.stage1complete:
-			self.build.can_build_assimilators = True				
-			self.build.can_build_pylons = True
-			if not self.game.under_attack and self.need_expand():
+			if self.game.trueGates > 0:
+				self.build.can_build_assimilators = True
+			else:
+				self.build.can_build_assimilators = False
+				
+			if len(self.game.units(PYLON)) > 0 and self.game.trueGates == 0:
+				self.build.can_build_pylons = False
+			else:
+				self.build.can_build_pylons = True
+				
+			if not self.game.under_attack and self.need_expand() and self.game.trueGates > 0 and self.army_power > 0:
 				#turn off all queues.
 				self.save_expand()
 			else:
-				self.build.cores = 1
 				self.saving = False
 				self.build_queue()
 				self.train_queue()
 				self.research_queue()
 				self.exp_scout()
+				self.build.cores = 1
 
 	
 	
@@ -183,6 +198,9 @@ class Strategist:
 			self.build.can_build_pylons = True
 		else:
 			self.build.can_build_pylons = False
+
+		if self.game.units(PYLON).amount > 0 and self.game.units(NEXUS).amount < 3 and self.game.minerals > 225:
+			self.assign_nexus_builder(direct=True)
 			
 
 		#build a nexus at the expansion.
@@ -284,7 +302,7 @@ class Strategist:
 		if self.startBuildingCount >= 4:
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)
 			return
 
 	async def setup_onebase_defense(self):
@@ -347,7 +365,7 @@ class Strategist:
 			self.build.can_build_pylons = True
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)
 
 	async def setup_twobase_production(self):
 		#build 1st pylon.
@@ -357,7 +375,10 @@ class Strategist:
 		if self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount < 1:
 			self.build.can_build_assimilators = True
 		else:
-			self.build.can_build_assimilators = False		
+			self.build.can_build_assimilators = False
+			
+		if self.game.minerals > 225 and self.game.units(GATEWAY).amount > 0 and self.game.units(ASSIMILATOR).amount > 0 and self.game.units(NEXUS).amount < 2:
+			self.assign_nexus_builder(direct=True)
 		
 		#build a nexus at the expansion.
 		if not self.game.under_attack and self.game.units(GATEWAY).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
@@ -393,7 +414,7 @@ class Strategist:
 			self.build.can_build_pylons = True
 			self.build.can_build_assimilators = True
 			self.stage1complete = True
-			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=True)	
+			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)	
 
 	async def setup_twobase_defense(self):
 		#build the pylon that the cannons will be placed near.
@@ -414,6 +435,9 @@ class Strategist:
 		else:
 			self.build.can_build_assimilators = False				
 		
+
+		if self.game.minerals > 225 and self.game.units(FORGE).amount > 0 and self.game.units(NEXUS).amount < 2:
+			self.assign_nexus_builder(direct=True)
 		
 		#build a nexus at the expansion.
 		if not self.game.under_attack and self.game.units(FORGE).amount > 0 and self.game.can_afford(NEXUS) and not self.game.already_pending(NEXUS) and self.game.units(NEXUS).amount == 1 and not self.game.rush_detected and self.allAllowedQueued:
@@ -485,9 +509,6 @@ class Strategist:
 			self.stage1complete = True
 			await self.game._client.chat_send(self.unitCounter.gets1successSaying(), team_only=False)	
 
-		
-
-		
 
 #################
 #Queue Decisions#
@@ -496,18 +517,17 @@ class Strategist:
 	def research_queue(self):
 		#formerly managed what could be researched, now just builds support for further resources if needed
 			
-		if self.game.trueGates + self.game.units(ROBOTICSFACILITY).amount >= 2:
+		if self.game.trueGates + self.game.units(ROBOTICSFACILITY).amount >= 3:
 			if self.build.forges == 0:
 				self.build.forges = 1
 				
-		if self.game.trueGates + self.game.units(ROBOTICSFACILITY).amount >= 4:
+		if self.game.trueGates >= 2:
 			if self.build.twilights == 0:
 				self.build.twilights = 1
 				
 		if self.game.units(STARGATE).amount >= 2:
 			if self.build.fleetbeacons == 0:
 				self.build.fleetbeacons = 1			
-
 			
 	def train_queue(self):
 		#reset all training to 0.
@@ -552,6 +572,11 @@ class Strategist:
 
 	def build_queue(self):
 		#grab the first item on the list and see if we can build it.
+		if len(self.buildings_needed) == 0:
+			#check to see if any gateways exist, if not build one.
+			if self.game.trueGates == 0:
+				self.build.gateways = 1
+		
 		for name, count in self.buildings_needed.items():
 			if name == 'Gateway':
 				#count gateways and add 1.
@@ -582,7 +607,33 @@ class Strategist:
 				print ('darksrhine triggered?')
 				self.build.darkshrines = 1				
 
-	def attack_command(self):
+	def check_rally(self):
+		#if we aren't rallying, just lave.
+		if not self.game.moveRally:
+			return
+		#if a unit is engaged, then the battle has already started, abort the rally.
+		if self.game.unit_engaged:
+#			self.game.moveRally = False		
+			return
+		
+		#if we are under attack, stop rallying and go defend.
+		if self.game.under_attack:
+			self.game.moveRally = False
+			self.game.defend_only = True			
+			return
+		#get the minimum power we can attack with.
+		min_power = self.min_attack()
+		#get the power of the army in the radius of the rally point and compare it against the known enemy army.
+		#When it exceeds the minimum requirements, start attack
+		rallyed = self.game.units.not_structure.exclude_type([PROBE,ADEPTPHASESHIFT,DISRUPTORPHASED]).closer_than(7, self.game.rally_pos)
+		rallyScore = self.score_rally(rallyed)
+
+		#currently in rally mode, don't attack until we have 20% more force than them.
+		if rallyScore > min_power and rallyScore > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195:
+			self.game.defend_only = False
+			self.game.moveRally = False		
+		
+	def min_attack(self):
 		min_power = 4000
 		if self.strat_id == 1:
 			min_power = 200
@@ -594,24 +645,98 @@ class Strategist:
 			min_power = 2500	
 		elif self.strat_id == 5:
 			min_power = 3000
+			
+		#if it's beyond 7 minutes in the game, min_power is too high to ever get too.
+		# if self.game.time > 420:
+		# 	min_power = 1000000
 		
 		#check to see if we just need to attack to collect enemy units.
 		if self.enemy_power < 5:    
 			min_power = 0
+		return min_power
+
+	def score_rally(self, army):
+		army_score = 0
+		for friendly in army:
+			if self.unitCounter.getUnitPower(friendly.name):
+				army_score += self.unitCounter.getUnitPower(friendly.name)
+			else:
+				print ('army_score missing', friendly.name)
+		return army_score
+	
+	def score_hallucinations(self):
+		hall_score = 0
+		halls = self.game.unitList.hallucinationList()
+		for unit_obj in halls:
+			#score the unit
+			hall_score += self.unitCounter.getUnitPower(unit_obj.unit.name)
+		return hall_score
+			
+
+	def score_attack(self):
+		#get the distance of our starting point to the midpoint of the map.
+		mid = self.game.midpoint(self.game.start_location, random.choice(self.game.enemy_start_locations))
+		dist = mid.distance_to(self.game.start_location)
+		#get the distance of the furtherest friendly base and add 20 distance to it.
+		#if it's a longer distance, use it instead of the midpoint.
+		if len(self.game.units(NEXUS)) > 0:
+			fdist = self.game.units(NEXUS).furthest_to(self.game.start_location).distance_to(self.game.start_location)
+			if dist < (fdist + 20) :
+				dist = fdist + 20
 		
+		
+		#find all enemy units in that radius and score them.
+		#attacking_enemies = self.game.cached_enemies.closer_than(dist, self.game.start_location)
+		attacking_enemies = self.game.cached_enemies.filter(lambda x: (x.can_attack_ground or x.can_attack_air) and x.distance_to(self.game.start_location) < dist)
+		enemy_score = 0
+		for enemy in attacking_enemies:
+			if self.unitCounter.getUnitPower(enemy.name):
+				enemy_score += self.unitCounter.getUnitPower(enemy.name)
+			else:
+				print ('enemy_score missing', enemy.name)
+		defend_score = 0
+		friendlies = self.game.units.filter(lambda x: not x.name in ['Probe'] and (x.can_attack_ground or x.can_attack_air) and x.distance_to(self.game.start_location) <= dist)
+		for friendly in friendlies:
+			if self.unitCounter.getUnitPower(friendly.name):
+				defend_score += self.unitCounter.getUnitPower(friendly.name)
+			else:
+				print ('army_score missing', friendly.name)		
+		
+		return [enemy_score, defend_score]	
+		
+
+	def attack_command(self):
+		#check to see if we are under attack, if we are under attack don't issue an attack command.
+		if self.game.defend_only and self.game.under_attack:
+			return
+
+		#if we are attacking and we are also under attack, then lets find out if we need to defend ourselves.
+		if not self.game.defend_only and self.game.under_attack:
+			[attack_score, defend_score] = self.score_attack()
+			# print ('attscore', attack_score)
+			# print ('defscore', defend_score)
+			if attack_score > defend_score + 200:
+				self.game.defend_only = True
+				self.game.moveRally = False
+				print ('going back to defense')
+
+		#get the minimum power we can attack with.
+		min_power = self.min_attack()
 		if self.game.defend_only:
 			#currently in defend mode, don't attack until we have 20% more force than them.
 			if self.army_power > min_power and self.army_power > (self.enemy_power + (self.enemy_power * .2)) or self.game.supply_used > 195 or self.game.under_attack:
 				self.game.defend_only = False
+				self.game.moveRally = True
 		else:
 			#currently attacking, don't defend unless we have less force than enemy.
 			if (self.army_power < self.enemy_power or self.army_power < min_power) and self.game.supply_used < 190 and not self.game.under_attack:
 				self.game.defend_only = True
+				self.game.moveRally = False
 		#if all nexus are dead, might as well just attack and hope for the best.
 		if self.game.units(NEXUS).amount == 0:
 			self.game.defend_only = False
+			self.game.moveRally = False
 		#self.game.defend_only = True		
-
 
 
 ####################
@@ -641,11 +766,55 @@ class Strategist:
 #debugging functions#
 #####################
 
+	def debug_full_counters(self):
+		#show enemy army found.
+		xpos = 0.005
+		for name, count in self.counted_enemy.items():
+			if count == 0:
+				continue
+			displayList = ''
+			counterList = self.unitCounter.getCounterUnits(name)
+			#multiple the enemy count by the counter suggested.
+			if not counterList:
+				print ('counterlist missing', name)
+			[best_list, canbuild] = self.parse_counterlist(counterList)
+			for countList in best_list:
+				#print ('counter', countList[0])
+				needed = countList[1] * count
+				displayList += "{}-{}, ".format(countList[0], needed)
+				
+			label = "{_name}: {_count} [{_counters}]".format(_name=name, _count=count, _counters=displayList)
+			self.game._client.debug_text_screen(label, pos=(0.001, xpos), size=12)
+			xpos += 0.025
+		#add enemy power label
+		xpos += 0.025
+		elab = "Power: {_power}".format(_power=self.enemy_power)
+		self.game._client.debug_text_screen(elab, pos=(0.001, xpos), size=12)
+		
+		#show what our army would look like if we built the best counter wanted.
+		#show best army
+		xpos = 0.055
+		for name, count in self.raw_all_counters.items():
+			#count number of these units we have.
+			unitID = self.unitCounter.getUnitID(name)
+			amt = self.game.units(unitID).amount + self.game.already_pending(unitID)
+
+			allowed = self.check_allowed(name)
+
+			label = "{_name}: {_count} - {_amt} [{_queued}] - {_allowed}".format(_name=name, _count=ceil(count), _amt=amt, _queued=str(self.game.already_pending(unitID)), _allowed=str(allowed))
+			self.game._client.debug_text_screen(label, pos=(0.7, xpos), size=12)
+			xpos += 0.025
+		
 	async def debug_positions(self):
 		#show defensive position.
 		if self.game.defensive_pos:
 			self.game._client.debug_sphere_out(self.game.turn3d(self.game.defensive_pos.position), 1, Point3((132, 0, 66))) #purple
 			self.game._client.debug_text_3d('DP', self.game.turn3d(self.game.defensive_pos.position))
+
+		if self.game.rally_pos:
+			self.game._client.debug_sphere_out(self.game.turn3d(self.game.rally_pos.position), 8, Point3((255,255,153))) #yellow
+			self.game._client.debug_text_3d('RALLY POINT', self.game.turn3d(self.game.rally_pos.position))
+
 		
 		#show main ramp.
 		self.game._client.debug_sphere_out(self.ramp1pylon1Pos.position, 1, Point3((244, 66, 125))) #pink
@@ -657,9 +826,6 @@ class Strategist:
 		for ramp in self.game.game_info.map_ramps:
 			self.game._client.debug_sphere_out(self.game.turn3d(ramp.top_center), 1, (252, 248, 0)) #yellow
 		
-		
-	
-				
 	def debug_intel(self):
 		xpos = 0.005
 		for name, count in self.counted_enemy.items():
@@ -676,11 +842,11 @@ class Strategist:
 		for name, count in self.able_army.items():
 			#count number of these units we have.
 			unitID = self.unitCounter.getUnitID(name)
-			amt = self.game.units(unitID).amount
+			amt = self.game.units(unitID).amount + self.game.already_pending(unitID)
 
 			allowed = self.check_allowed(name)
 
-			label = "{_name}: {_count} - {_amt} - {_allowed}".format(_name=name, _count=ceil(count), _amt=amt, _allowed=str(allowed))
+			label = "{_name}: {_count} - {_amt} [{_queued}] - {_allowed}".format(_name=name, _count=ceil(count), _amt=amt, _queued=str(self.game.already_pending(unitID)), _allowed=str(allowed))
 			self.game._client.debug_text_screen(label, pos=(0.7, xpos), size=10)
 			xpos += 0.025
 		
@@ -695,11 +861,11 @@ class Strategist:
 		for name, count in self.ideal_army.items():
 			#count number of these units we have.
 			unitID = self.unitCounter.getUnitID(name)
-			amt = self.game.units(unitID).amount
+			amt = self.game.units(unitID).amount + self.game.already_pending(unitID)
 
 			allowed = self.check_allowed(name)
 
-			label = "{_name}: {_count} - {_amt} - {_allowed}".format(_name=name, _count=ceil(count), _amt=amt, _allowed=str(allowed))
+			label = "{_name}: {_count} - {_amt} [{_queued}] - {_allowed}".format(_name=name, _count=ceil(count), _amt=amt, _queued=str(self.game.already_pending(unitID)), _allowed=str(allowed))
 			self.game._client.debug_text_screen(label, pos=(0.5, xpos), size=10)
 			xpos += 0.025
 
@@ -813,6 +979,10 @@ class Strategist:
 		return Point2(((pos1.position.x + pos2.position.x) / 2, (pos1.position.y + pos2.position.y) /2))
 
 	def findRamp2(self):
+		
+		#broken maps, return none on them.
+		#print (self.game.game_info._proto.map_name)
+		
 		#try to locate the 2nd ramp.
 		ramps = []
 		for ramp in self.game.game_info.map_ramps:
@@ -855,7 +1025,8 @@ class Strategist:
 		if nexus:
 			mins = self.game.state.mineral_field.closer_than(15, nexus)
 			vasp = self.game.state.vespene_geyser.closer_than(15, nexus)
-			mf = Units((mins + vasp), self.game)
+#			mf = Units((mins + vasp), self.game)
+			mf = Units((mins + vasp))			
 			if mf:
 				center_pos = Point2((sum([item.position.x for item in mf]) / len(mf), \
 						sum([item.position.y for item in mf]) / len(mf)))
@@ -965,12 +1136,13 @@ class Strategist:
 		if not self.game.reaper_cheese and self.game.known_enemy_units.of_type([REAPER,BANSHEE]).closer_than(20, self.game.start_location).amount > 1:
 			self.game.reaper_cheese = True
 			#print ('reaper/banshee cheese detected')
-			self.build.forges = 1
+			#self.build.forges = 1
 
 	def detect_allinWorker_rush(self):
 		self.game.workerAllin = False
 		#check the building list to see if any nexus have detected workers.
 		if self.game.buildingList.underWorkerAllin:
+			print ('all in detected')
 			self.game.workerAllin = True
 		
 		
@@ -981,7 +1153,8 @@ class Strategist:
 		detected = False
 		if self.game.units.not_structure.exclude_type(PROBE).amount < 3 and self.game.units(PHOTONCANNON).ready.amount < 3 and self.game.units.structure.amount < 5:
 			for nexus in self.game.units(NEXUS):
-				if not self.game.rush_detected and self.game.known_enemy_units.exclude_type(PROBE).not_flying.closer_than(20, nexus).amount > 5:
+				#if not self.game.rush_detected and self.game.known_enemy_units.exclude_type(PROBE).not_flying.closer_than(20, nexus).amount > 5:
+				if not self.game.rush_detected and self.game.known_enemy_units.not_flying.closer_than(20, nexus).amount > 2:
 					detected = True
 		if detected:
 			self.game.rush_detected = True
@@ -1077,7 +1250,9 @@ class Strategist:
 				army_score += self.unitCounter.getUnitPower(friendly.name)
 			else:
 				print ('army_score missing', friendly.name)
-		self.army_power = army_score
+		#subtract hallucinations
+		#hall_score = self.score_hallucinations()
+		self.army_power = army_score - self.game.unitList.hallucinationScore
 
 
 	def unit_ratios(self):
@@ -1321,7 +1496,7 @@ class Strategist:
 				return False
 		return True
 
-	
+
 	def parse_counterlist(self, counters):
 		canbuild = []
 		best_list = []
@@ -1335,12 +1510,13 @@ class Strategist:
 				if listnum == 0:
 					best_list.append(unit)
 				#find out if we are able to build the unit.
-				if self.checkUnitReq(unit[0]):
-					#able to build it.
-					templist.append(unit)
-				else:
-					passtest = False
-					break
+				if passtest:
+					if self.checkUnitReq(unit[0]):
+						#able to build it.
+						templist.append(unit)
+					else:
+						passtest = False
+						continue
 				
 			if passtest:
 				canbuild = templist
@@ -1348,9 +1524,7 @@ class Strategist:
 			listnum += 1
 		return [best_list, canbuild]
 		
-
-
-	def calc_starter_counters(self, inc_units):
+	def calc_starter_counters_old(self, inc_units):
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1404,16 +1578,95 @@ class Strategist:
 			most_requested2 = 'TwilightCouncil'
 
 		self.start_build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested2]
+#		self.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']		
+		
 		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
 			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
 
+
+		print (self.start_build_order)
+
+	def calc_starter_counters(self, inc_units):
+		counters = {}
+		#loop units and get the counters.
+		for name in inc_units:
+			self.ghost_units.update({name:0})
+			counterList = self.unitCounter.getCounterUnits(name)
+			#multiple the enemy count by the counter suggested.
+			if not counterList:
+				print ('counterlist missing', name)
+			[best_list, canbuild] = self.parse_counterlist(counterList)	
+			for countList in best_list:
+				#add the counter to the existing for a total needed of unit.
+				needed = countList[1]
+				if not counters.get(countList[0]):
+					counters.update({countList[0]:needed})
+				else:
+					val = counters.get(countList[0]) + needed
+					counters.update({countList[0]:val})
+		self.starting_army = counters
+		#now calculate the buildings we need.
+		#print (counters)
+		buildings_needed = {}
+		demand_dict = {}
+		for name, count in self.starting_army.items():
+			#print (name, count)
+			#find the building that makes this unit and add into the demand.
+			building = self.unitCounter.getUnitTrainer(name)
+			unitValue = self.unitCounter.getUnitCost(name) * count
+			if not demand_dict.get(building):
+				demand_dict.update({building:unitValue})
+			else:
+				val = demand_dict.get(building) + unitValue
+				demand_dict.update({building:val})
+		#get the building we need the most.
+		most_requested = 'Gateway'
+		most_requested_count = 0
+		requestedList = []
+		for building, count in demand_dict.items():
+			#print (building, count)
+			if count > 0:
+				requestedList.append(building)
+			if count > most_requested_count:
+				most_requested_count = count
+				most_requested = building
+
+		most_requested2 = most_requested
+		if 'Stargate' in requestedList and 'RoboticsFacility' in requestedList:
+			if most_requested == 'Stargate':
+				most_requested2 = 'RoboticsFacility'
+			elif most_requested == 'RoboticsFacility':
+				most_requested2 = 'Stargate'
+			else:
+				most_requested2 = 'RoboticsFacility'
+		else:
+			if most_requested == 'RoboticsFacility':
+				if not self.starting_army.get('Immortal'):
+					most_requested2 = 'RoboticsBay'
+				else:
+					most_requested = 'Gateway'
+					most_requested2 = 'RoboticsFacility'
+			elif most_requested == 'Stargate':
+				if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
+					most_requested2 = 'FleetBeacon'
+				else:
+					most_requested = 'Gateway'
+					most_requested2 = 'Stargate'
+			elif most_requested == 'Gateway':
+				if 'RoboticsFacility' in requestedList:
+					most_requested2 = 'RoboticsFacility'
+				elif 'TemplarArchive' in requestedList:
+					most_requested2 = 'TemplarArchive'
+				else:
+					most_requested2 = 'TwilightCouncil'
+		self.start_build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested2]
+		
+		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
+			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
+
+
 		print (self.start_build_order)
 		
-		
-
-		
-		
-
 	def calc_counters(self):
 		counters = {}
 		possible_counters = {}
@@ -1464,15 +1717,13 @@ class Strategist:
 		
 		if len(counters) == 0:
 			counters.update({'Zealot':1})
-			counters.update({'Phoenix':1})
-		if len(counters) == 0 and self.game.units(ZEALOT).ready.amount > 5:
-			counters.update({'Stalker':2})
-		if len(counters) == 0 and self.game.units(STALKER).ready.amount > 5:
-			counters.update({'VoidRay':2})
-
+#			counters.update({'Phoenix':1})
+#		if len(counters) == 0 and self.game.units(ZEALOT).ready.amount > 5:
+#			counters.update({'Stalker':2})
+#		if len(counters) == 0 and self.game.units(STALKER).ready.amount > 5:
+#			counters.update({'VoidRay':2})
 	
-			
-
+		self.raw_all_counters = dict(counters)
 		self.enemy_power = enemy_power
 		self.ideal_army = counters
 		self.raw_ideal_army = dict(counters)
@@ -1579,8 +1830,6 @@ class Strategist:
 		for name, count in self.ghost_units.items():
 			if not counted_enemy.get(name):
 				counted_enemy.update({name:0})
-
-		
 		self.counted_enemy = counted_enemy
 		#print (self.counted_enemy)
 
@@ -1595,8 +1844,8 @@ class Strategist:
 
 	def collect_intel(self):
 		#collect all the known enemy names, tags
-		zerg_units = [SPINECRAWLER, SPORECRAWLER, OVERLORD, BANELING, ZERGLING, HYDRALISK, MUTALISK, ULTRALISK, ROACH, INFESTOR, BROODLORD, QUEEN, OVERSEER, RAVAGER, LURKER, CORRUPTOR, VIPER]
-		terran_units = [PLANETARYFORTRESS, COMMANDCENTER, MARINE, SIEGETANK, REAPER, GHOST, MARAUDER, THOR, MEDIVAC, BANSHEE, RAVEN, BATTLECRUISER, VIKINGASSAULT, VIKINGFIGHTER, LIBERATOR, HELLION, WIDOWMINE, CYCLONE, MISSILETURRET]
+		zerg_units = [LURKERMP, LURKERMPBURROWED, ZERGLINGBURROWED, OVERLORDTRANSPORT, HYDRALISKBURROWED, ROACHBURROWED, SPINECRAWLERUPROOTED, SPORECRAWLERUPROOTED, SPINECRAWLER, SPORECRAWLER, OVERLORD, BANELING, ZERGLING, HYDRALISK, MUTALISK, ULTRALISK, ROACH, INFESTOR, BROODLORD, QUEEN, OVERSEER, RAVAGER, LURKER, CORRUPTOR, VIPER]
+		terran_units = [BUNKER, LIBERATORAG, HELLIONTANK, PLANETARYFORTRESS, COMMANDCENTER, MARINE, SIEGETANK, SIEGETANKSIEGED, REAPER, GHOST, MARAUDER, THOR, MEDIVAC, BANSHEE, RAVEN, BATTLECRUISER, VIKINGASSAULT, VIKINGFIGHTER, LIBERATOR, HELLION, WIDOWMINEBURROWED, WIDOWMINE, CYCLONE, MISSILETURRET]
 		protoss_units = [MOTHERSHIP, COLOSSUS, ZEALOT, STALKER, HIGHTEMPLAR, DARKTEMPLAR, SENTRY, PHOENIX, CARRIER, VOIDRAY, WARPPRISM, OBSERVER, IMMORTAL, ADEPT, ORACLE, TEMPEST, DISRUPTOR, ARCHON, PHOTONCANNON]
 		all_units = zerg_units + terran_units + protoss_units
 		enemyThreats = self.game.known_enemy_units.of_type(all_units)
@@ -1628,7 +1877,7 @@ class Strategist:
 			if enemy.name in ['HighTemplar', 'DarkTemplar']:
 				self.unitTimes.update({enemy.tag:[enemy.name, self.game.time]})
 				
-		if new_unit:
+		if new_unit and self.game.savingData:
 			#save if unique unit found
 			self.game._training_data.saveUnitResult(self.game.opp_id, self.unique_enemies, self.game.enemy_race)
 
@@ -1651,11 +1900,36 @@ class Strategist:
 					for tag in removed:
 						self.remove_timed(tag)
 		
+		
+	def assign_nexus_builder(self, direct=False):
+		if not self.game.expPos:
+			return False
+		if (self.saving and self.game.minerals > 225) or direct:
+			#select the worker closes to the next expansion slot.
+			#mark him as being the next expansion builder.
+			if not self.game.unitList.nexusBuilderAssigned and len(self.game.units(PROBE).ready) > 0:
+				probes = self.game.units(PROBE).sorted(lambda x: x.distance_to(self.game.expPos))
+				for probe in probes:
+					#get the unit obj by tag.
+					probe_obj = self.game.unitList.getObjectByTag(probe.tag)
+					if not probe_obj.collect_only and not probe_obj.scout:
+						probe_obj.nexus_builder = True
+						probe_obj.rush_defender = False
+						probe_obj.lite_defender = False
+						probe_obj.removeGatherer()
+						return
+		elif not direct:
+			#clear any that might have been marked.
+			self.game.unitList.freeNexusBuilders()
 			
+						
+
+
+
 
 	def detect_single_worker(self):
 		if not self.worker_detected and self.game.time < 180:
-			#check for the single worker and assign 4 workers to attack it.
+			#check for the single worker and assign 2 workers to attack it.
 			if self.game.known_enemy_units.of_type([PROBE,DRONE,SCV,PHOTONCANNON,REAPER]).closer_than(25, self.game.game_info.player_start_location).amount == 1:
 				#grab the 1 worker closest to the enemy that aren't marked as collectors or scouts
 				defenders = 0
@@ -1675,7 +1949,8 @@ class Strategist:
 				self.worker_detected = False
 				#for tag, obj in self.game._pb_objects.items():
 				for tag, obj in self.game.unitList.getWorkers():
-					obj.lite_defender = False		
+					obj.lite_defender = False	
+					#obj.removeGatherer()	
 			
 
 					

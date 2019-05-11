@@ -48,18 +48,27 @@ class Mothership:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#Terran
+			'Medivac': 40,
+			'SCV': 45,
+			'SiegeTank': 25,
+			'SiegeTankSieged': 25,
+			'WidowMine': 30,			
+			'Raven': 20,
+			#Protoss
+			'Colossus': 15,
+			'Mothership': 20,
+			'Phoenix': 5,	
+			'VoidRay': 5,
+			'Tempest': 20,
+			#Zerg
+			'Mutalisk': 5,
+			'Infestor': 30,
+			'Ultralisk': 25,
+			'BroodLord': 25,
 		}		
 		
 	def make_decision(self, game, unit):
@@ -74,13 +83,25 @@ class Mothership:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 
 	def runList(self):
+
+
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+
+		#enemies around us mode.
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+
+
 		#get all the enemies around us.
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+
 			#see if we are able to escape if needed.
 			if self.game.canEscape(self) and self.game.keepSafe(self):
 				self.label = 'Retreating Safe'
@@ -113,7 +134,13 @@ class Mothership:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -211,5 +238,12 @@ class Mothership:
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
+	@property
+	def isHallucination(self) -> bool:
+		return False
+		
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome
 
-	
+				

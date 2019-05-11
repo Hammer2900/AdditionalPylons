@@ -54,18 +54,27 @@ class Adept:
 		self.shade_range = 6
 		self.last_target = None
 		self.label = 'Idle'
+		self.shadeOrder = None
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#gets bonus vs light units.
+			#Terran
+			'Marine': 5,
+			'Reaper': 5,
+			'Hellion': 5,
+			'SCV': 40,
+			'WidowMine': 30,		
+			'WidowMineBurrowed': 50,	
+			#Protoss
+			'Zealot': 5,
+			'Adept': 10,
+			'Sentry': 10,
+			'HighTemplar': 15,
+			'DarkTemplar': 20,
+			#Zerg
+			'Zergling': 5,
+			'Hydralisk': 10,
 		}
 
 	def make_decision(self, game, unit):
@@ -80,21 +89,38 @@ class Adept:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 			
 
 	def runList(self):
 		if not self.unit.is_ready:
 			return #warping in
+
+		self.shadeOrder = 'Search'
+		#1a priority is to send shade towards enemy if we can.
+		if self.psionicTransfer():
+			self.label = 'Go Go Shade'
+			return #sending Psionic Transfer scout
+		
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.	
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)			
+				
+
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
-
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.				
 			
+			#check if we are surrounded
+			if self.game.checkSurrounded(self):
+				self.shadeOrder = 'Surrounded'
+				
+
+
 			#see if we are able to escape if needed.
 			if self.game.canEscape(self) and self.game.keepSafe(self):
 				self.label = 'Retreating Safe'
@@ -105,11 +131,6 @@ class Adept:
 				self.label = 'Attacking'
 				return #attacked already this step.
 		
-			#1a priority is to send shade towards enemy if we can.
-			if self.psionicTransfer():
-				self.label = 'Go Go Shade'
-				return #sending Psionic Transfer scout
-
 			#save our butts if we can
 			if self.game.keepSafe(self):
 				self.label = 'Retreating Death'
@@ -124,14 +145,19 @@ class Adept:
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):
 				self.label = 'Moving Priority Target'
 				return #moving towards a better target.
-			
-			
+					
 		#if we are in defend mode and we aren't under attack, then go to the defend point.
 		if self.game.defend_only and not self.game.under_attack:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -151,8 +177,14 @@ class Adept:
 
 		#print ('Adept has nothing to do for some reason')
 
-
 	def psionicTransfer(self):
+		#see if we need to cast a shade at the enemy.
+		if AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT in self.abilities and self.game.can_afford(ADEPTPHASESHIFT_ADEPTPHASESHIFT):
+			self.game.combinedActions.append(self.unit(AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT, self.unit.position))
+			return True
+		return False
+	
+	def psionicTransferReal(self):
 		#see if we need to cast a shade at the enemy.
 		if not self.game.units(ADEPTPHASESHIFT).closer_than(6, self.unit):
 			#targetEnemy = self.game.findGroundTarget(self.unit, can_target_air=False, max_enemy_distance=self.shade_range)
@@ -180,7 +212,16 @@ class Adept:
 		self.last_action = actionStr
 		return True
 	
-	
+	def ownerOrder(self):
+		#list of things we could tell our shade to do.
+		#if surrounded by enemies, shade should find a safe place to move too.
+		#if we are near an enemy base, try to get near workers to kill them.
+		#if we are retreating, then shade should head towards the defensive point.
+		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.   
+		#if we are defending, shade should go behind the lines in case the enemy tries to retreat and we want to port to them.
+		#if we are scouting, have the shade go into the base and search around.
+		pass
+
 	@property
 	def position(self) -> Point2:
 		return self.saved_position
@@ -189,7 +230,14 @@ class Adept:
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
-
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome
+		
 				
 			
 	

@@ -47,43 +47,68 @@ class Immortal:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.is_hallucination = None
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#gets bonus vs armored units.
+			#Terran
+			'Marauder': 5,
+			'Thor': 5,
+			'SiegeTank': 25,
+			'SiegeTankSieged': 25,			
+			'SCV': 40,
+			'Viking': 5,
+			'VikingFighter': 5,
+			'Cyclone': 5,
+			'WidowMine': 30,	
+			'WidowMineBurrowed': 50,		
+			#Protoss
+			'Stalker': 5,
+			'Immortal': 5,
+			'Disruptor': 5,
+			#Zerg
+			'Roach': 5,
+			'Infestor': 5,
+			'Ultralisk': 5,
 		}		
 
 	def make_decision(self, game, unit):
 		self.saved_position = unit.position #first line always.
 		self.game = game
 		self.unit = unit
+
+		if self.is_hallucination is None:
+			self.check_hallucination()
 		
-		self.runList()
+		if self.is_hallucination:
+			self.runHallList()
+		else:
+			self.runList()
 		
 
 		#debugging info
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 			
 			
+			
 	def runList(self):
+		
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.	
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+				
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.				
+
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
 				self.label = 'Attacking'
@@ -110,7 +135,13 @@ class Immortal:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -127,6 +158,55 @@ class Immortal:
 			return #looking for targets
 
 		self.label = 'Idle'
+
+
+	def runHallList(self):
+		self.closestEnemies = self.game.getUnitEnemies(self)
+		if self.closestEnemies.amount > 0:
+			#look around our range and find the highest target value and move towards it.
+			if self.moveNearEnemies(self):
+				self.label = 'Hall Moving Priority Target'
+				return #moving towards a better target.			
+			return #moving to friend.
+					
+		#6 move the closest known enemy.
+		if self.game.moveToEnemies(self):
+			self.label = 'Hall Moving Enemy'
+			return #moving to next target.
+					
+		#8 find the enemy
+		if self.game.searchEnemies(self):
+			self.label = 'Hall Searching'
+			return #looking for targets
+		
+		self.label = 'Idle'		
+
+	def check_hallucination(self):
+		#if a robo is near us, then likely not a hallucination.
+		if len(self.game.units(ROBOTICSFACILITY)) == 0:
+			self.is_hallucination = True
+			return
+		#robo exist in game, see if it's closer than 4 distance away.
+		if self.game.units(ROBOTICSFACILITY).closer_than(4, self.unit):
+			self.is_hallucination = False
+			return
+		else:
+			self.is_hallucination = True
+			return
+		self.is_hallucination = False
+
+	def moveNearEnemies(self, unit_obj):
+		if not self.closestEnemies:
+			return False  # no enemies to move to
+		
+		#find the center of enemies and move to it to draw fire.
+		#targetPoint = self.game.findAOETarget(self, 25, 6, minEnemies=1)
+		targetPoint = self.game.findDrawFireTarget(self, 10)
+		if targetPoint:
+			if self.checkNewAction('move', targetPoint.position.x, targetPoint.position.y):
+				self.game.combinedActions.append(self.unit.move(targetPoint.position))
+			return True
+		return False
 
 	def getTargetBonus(self, targetName):
 		if self.enemy_target_bonuses.get(targetName):
@@ -145,12 +225,21 @@ class Immortal:
 	def position(self) -> Point2:
 		return self.saved_position
 		
-	
 	@property
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
-
+	@property
+	def isHallucination(self) -> bool:
+		if self.is_hallucination:
+			return True
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+		
+		
 		
 		
 		

@@ -26,7 +26,7 @@ class Stargate:
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		self.queueStatus()
 
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = "Busy {}".format(str(len(self.abilities)))
@@ -45,9 +45,6 @@ class Stargate:
 		if await self.trainUnit():
 			return
 		
-
-	
-	
 	
 	async def trainUnit(self):
 		#make sure we can spend.
@@ -73,8 +70,7 @@ class Stargate:
 		if self.game.can_afford(self.unitCounter.getUnitID(trainee)):
 			return True
 		
-	
-	
+		
 	def bestTrain(self):
 		bestName = None
 		bestCount = -1
@@ -97,7 +93,7 @@ class Stargate:
 				
 		#apparently couldn't build anything in the ideal list that is being allowed, check for anything to build.
 		#if minerals are backing up, then go ahead and build anything.
-		if self.game.minerals > 550:
+		if self.game.minerals > 550 and self.game.vespene > 500:
 			bestName = None
 			bestCount = -1		
 			for name, count in self.game._strat_manager.able_army.items():
@@ -117,7 +113,7 @@ class Stargate:
 	
 
 	def queueStatus(self):
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			self.queued = False
 		else:
 			self.queued = True		

@@ -41,7 +41,7 @@ class Forge:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = 'Researching {}'.format(self.current_research)
@@ -96,7 +96,7 @@ class Forge:
 				return True
 
 	def researchGroundArmor2(self):
-		if self._ground_armor_researched and not self._ground_armor2_started and not self._ground_armor2_researched and self.game.units(TWILIGHTCOUNCIL).ready.exists:
+		if self._ground_dps3_researched and self._ground_armor_researched and not self._ground_armor2_started and not self._ground_armor2_researched and self.game.units(TWILIGHTCOUNCIL).ready.exists:
 			if AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2 in self.abilities and self.game.can_afford(FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2):
 				self.game.combinedActions.append(self.unit(AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2))
 				self._ground_armor2_started = True
@@ -105,7 +105,7 @@ class Forge:
 				return True				
 
 	def researchGroundArmor(self):
-		if self._ground_dps3_researched and not self._ground_armor_started and not self._ground_armor_researched:
+		if (len(self.game.units(ZEALOT)) > 5 or self._ground_dps3_researched) and not self._ground_armor_started and not self._ground_armor_researched:
 			if AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1 in self.abilities and self.game.can_afford(FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1):
 				self.game.combinedActions.append(self.unit(AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1))
 				self._ground_armor_started = True

@@ -52,18 +52,26 @@ class Colossus:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#gets bonus vs light units.
+			#Terran
+			'Marine': 5,
+			'Reaper': 5,
+			'Hellion': 5,
+			'SCV': 40,
+			'WidowMine': 30,
+			'WidowMineBurrowed': 50,
+			#Protoss
+			'Zealot': 5,
+			'Adept': 10,
+			'Sentry': 10,
+			'HighTemplar': 15,
+			'DarkTemplar': 20,
+			#Zerg
+			'Zergling': 5,
+			'Hydralisk': 10,		
 		}		
 
 	def make_decision(self, game, unit):
@@ -80,19 +88,23 @@ class Colossus:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)		
 		
 		
 		
 	def runList(self):
+
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.	
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
-			
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.	
 			
 			#1 priority is always attack first if we can
 			if self.game.attack(self, self.bonus_range):
@@ -119,7 +131,13 @@ class Colossus:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -160,7 +178,14 @@ class Colossus:
 	def isRetreating(self) -> bool:
 		return self.retreating
 
+	@property
+	def isHallucination(self) -> bool:
+		return False
 	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+			
 		
 
 		

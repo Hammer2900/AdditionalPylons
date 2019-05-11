@@ -52,18 +52,44 @@ class Stalker:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.last_health = 0
+		self.damaged = False
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#gets bonus vs armored units.
+			#Terran
+			'Marauder': 5,
+			'Thor': 5,
+			'SiegeTank': 25,
+			'SiegeTankSieged': 25,			
+			'Medivac': 30,
+			'SCV': 40,
+			'Battlecruiser': 5,
+			'Viking': 5,
+			'VikingFighter': 5,
+			'Cyclone': 5,
+			'Liberator': 5,
+			'WidowMine': 30,	
+			'WidowMineBurrowed': 50,		
+			'Raven': 31,
+			'Banshee': 20,
+			#Protoss
+			'Stalker': 5,
+			'WarpPrism': 5,
+			'Immortal': 5,
+			'VoidRay': 5,
+			'Tempest': 5,
+			'Disruptor': 5,
+			'Carrier': 5,
+			#Zerg
+			'Roach': 5,
+			'Infestor': 5,
+			'Ultralisk': 5,
+			'Overlord': -100, #no reason to attack them first.
+			'Overseer': 5,
+			'Corruptor': 5,
+			'Brood Lord': 5,
 		}		
 		
 	def make_decision(self, game, unit):
@@ -73,13 +99,16 @@ class Stalker:
 		self.saved_position = self.unit.position
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		
+		self.trackHealth()
+		
 		self.runList()
+	
 
 		#debugging info
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 	
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 		
@@ -89,18 +118,28 @@ class Stalker:
 	def runList(self):
 		if not self.unit.is_ready:
 			return #warping in		
+			#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
 			
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.				
+			
 			
 			#1 priority is always attack first if we can
 			if self.game.attack(self):
 				self.label = 'Attacking'
-				return #we attacked this step.			
+				return #we attacked this step.
+			
+			#check to see if we need to blink out of damage.
+			if self.defensiveBlink():
+				self.label = 'Defensive Blink'
+				return
 
 			#see if we need to evaluate the battle before entering it.
 			if self.game.waitForce(self):
@@ -142,7 +181,13 @@ class Stalker:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-			
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+					
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -165,7 +210,7 @@ class Stalker:
 		if AbilityId.EFFECT_BLINK_STALKER in self.abilities and self.game.can_afford(EFFECT_BLINK_STALKER):
 			#check to see if the target is running away from us.
 			useblink = False
-			lead_position = self.game.leadTarget(targetEnemy)
+			lead_position = self.game.leadTarget(targetEnemy, self)
 			#get distance from unit to enemy and distance from unit to lead position.
 			enemy_distance = self.unit.distance_to(targetEnemy)
 			
@@ -182,10 +227,13 @@ class Stalker:
 					#unit is running away, blink towards them.
 					blinkPoint = self.unit.position.towards(targetEnemy.position, distance=5.5)
 					if blinkPoint:
-						if self.checkNewAction('blink', blinkPoint[0], blinkPoint[1]):
-							self.game.combinedActions.append(self.unit(AbilityId.EFFECT_BLINK_STALKER, blinkPoint))
-						self.last_target = blinkPoint.position
-						return True
+						#check to make sure we aren't about to blink into a bunch of other units who want to kill us.
+						possibles = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(blinkPoint) <= (x.ground_range + x.radius + self.unit.radius) and self.game.targetFacing(self, x))
+						if len(possibles) == 0:
+							if self.checkNewAction('blink', blinkPoint[0], blinkPoint[1]):
+								self.game.combinedActions.append(self.unit(AbilityId.EFFECT_BLINK_STALKER, blinkPoint))
+							self.last_target = blinkPoint.position
+							return True
 		return False
 
 	def blinkRetreat(self):
@@ -198,6 +246,25 @@ class Stalker:
 				self.last_target = retreatPoint.position
 				return True
 		return False		
+
+
+	def defensiveBlink(self):
+		if self.damaged and self.unit.shield == 0:
+			if AbilityId.EFFECT_BLINK_STALKER in self.abilities and self.game.can_afford(EFFECT_BLINK_STALKER):
+				retreatPoint = self.game.findGroundRetreatTarget(self.unit, inc_size=6, enemy_radius=10)
+				if retreatPoint:
+					if self.checkNewAction('blink', retreatPoint[0], retreatPoint[1]):
+						self.game.combinedActions.append(self.unit(AbilityId.EFFECT_BLINK_STALKER, retreatPoint))
+					self.last_target = retreatPoint.position
+					return True
+		return False
+
+
+	def trackHealth(self):
+		if (self.unit.health + self.unit.shield) < self.last_health:
+			self.damaged = True
+		self.last_health = self.unit.health + self.unit.shield
+
 
 	def getTargetBonus(self, targetName):
 		if self.enemy_target_bonuses.get(targetName):
@@ -221,4 +288,10 @@ class Stalker:
 	def isRetreating(self) -> bool:
 		return self.retreating
 
-			
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome					

@@ -78,9 +78,7 @@ class Builder:
 		if self.game.time > self.last_pylon_check:
 			self.last_pylon_check = self.game.time + 5
 			self.check_pylons_exist()
-
-
-		
+			
 		#if we have no probes, might as well exit because we can't build anything.
 		if self.game.units(PROBE).ready.amount == 0:
 			return
@@ -102,18 +100,18 @@ class Builder:
 		if self.canBuildGateway() and await self.build_gateway():
 			self.game.can_spend = False
 			return
+		
 		if self.canBuildCore() and await self.build_cyberneticscore():
 			self.game.can_spend = False
-			return		
+			return
+		
 		if self.canBuildForge() and await self.build_forge():
 			self.game.can_spend = False
 			return
 
-
 		#if we are under attack, then leave because we don't ned to build anything, we need to defend.
 		if self.game.under_attack and self.game.minerals < 500:
 			return				
-
 
 		#always build assimilators if needed.
 		if self.build_assimilators():
@@ -148,152 +146,18 @@ class Builder:
 
 		
 
-
-###################
-#Build base pylons#
-###################
-	async def buildPylon1(self):
-		if self.build_pylon1 and self.pylon1Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon1Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon1Loc.position)
-				if location:
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon1 = False
-					self.pylon1_built = True
-					return True
-				else:
-					self.build_pylon1 = False
-					self.pylon1_built = True
-					return False					
-
-	async def buildPylon2(self):
-		if self.build_pylon2 and self.pylon2Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon2Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon2Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon2 = False
-					self.pylon2_built = True
-					return True
-				else:
-					self.build_pylon2 = False
-					self.pylon2_built = True
-					return False
-
-	async def buildPylon3(self):
-		if self.build_pylon3 and self.pylon3Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon3Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon3Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon3 = False
-					self.pylon3_built = True
-					return True
-				else:
-					self.build_pylon3 = False
-					self.pylon3_built = True
-					return False					
-
-	async def buildPylon4(self):
-		if self.build_pylon4 and self.pylon4Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon4Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon4Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon4 = False
-					self.pylon4_built = True
-					return True
-				else:
-					self.build_pylon4 = False
-					self.pylon4_built = True
-					return False					
-
-	async def buildPylon5(self):
-		if self.build_pylon5 and self.pylon5Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon5Loc.position)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon5Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon5 = False
-					self.pylon5_built = True
-					return True
-				else:
-					self.build_pylon5 = False
-					self.pylon5_built = True
-					return False				
-
-	async def buildPylon6(self):
-		if self.build_pylon6 and self.pylon6Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon6Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon6Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon6 = False
-					self.pylon6_built = True
-					return True
-				else:
-					self.build_pylon6 = False
-					self.pylon6_built = True
-					return False							
-
-	async def buildPylon7(self):
-		if self.build_pylon7 and self.pylon7Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon7Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon7Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon7 = False
-					self.pylon7_built = True
-					return True
-				else:
-					self.build_pylon7 = False
-					self.pylon7_built = True
-					return False				
-
-	async def buildPylon8(self):
-		if self.build_pylon8 and self.pylon8Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon8Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon8Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon8 = False
-					self.pylon8_built = True
-					return True
-				else:
-					self.build_pylon8 = False
-					self.pylon8_built = True
-					return False	
-
-	async def buildPylon9(self):
-		if self.build_pylon9 and self.pylon9Loc and self.game.can_afford(PYLON):
-			worker = self.game.select_build_worker(self.pylon9Loc)
-			if worker:
-				location = await self.game.find_placement(PYLON, self.pylon9Loc.position)
-				if location:				
-					self.game.combinedActions.append(worker.build(PYLON, location))
-					self.build_pylon9 = False
-					self.pylon9_built = True
-					return True
-				else:
-					self.build_pylon9 = False
-					self.pylon9_built = True
-					return False	
-
 ##################
 #Can Build Checks#
 ##################
 
 	def canBuildPylon(self):
+		#make sure we don't build a bunch of pylons before the first gateway on rushes.
+		if self.game._strat_manager.stage1complete and len(self.game.units(PYLON)) > 0 and (len(self.game.units(GATEWAY)) + len(self.game.units(WARPGATE))) == 0:
+			return False
+		
+		
 		#check to see if pylons are being requested, if so - bypass the other checks and build them.
-		if self.game.buildingList.pylonsRequested and (self.game._strat_manager.stage1complete or self.game.reaper_cheese) and self.game.can_afford(PYLON) and self.game.already_pending(PYLON) < self.game.buildingList.pylonsRequested:
+		if self.game._strat_manager.stage1complete and self.game.buildingList.pylonsRequested and (self.game._strat_manager.stage1complete or self.game.reaper_cheese) and self.game.can_afford(PYLON) and self.game.already_pending(PYLON) < self.game.buildingList.pylonsRequested:
 			return True
 		
 		#check to see if we can build a pylon before calling it async.
@@ -308,8 +172,13 @@ class Builder:
 			add_on = 8
 		elif self.game.supply_cap > 20:
 			add_on = 6
+		
+		pendingAllowed = 1
+		if self.game.supply_left < (add_on - 8):
+			pendingAllowed = 2
+
 			
-		if self.can_build_pylons and self.game.supply_left < add_on and self.game.already_pending(PYLON) < 1 and not self.game.supply_cap >= 200 and self.game.units(NEXUS).amount > 0 and self.game.can_afford(PYLON):
+		if self.can_build_pylons and self.game.supply_left < add_on and self.game.already_pending(PYLON) < pendingAllowed and not self.game.supply_cap >= 200 and self.game.units(NEXUS).amount > 0 and self.game.can_afford(PYLON):
 			return True
 		return False
 
@@ -390,6 +259,11 @@ class Builder:
 			elif self.can_build_assimilators and  self.game.minerals > 500 and self.game.vespene < 500:
 				economic_pass = True
 			
+			if economic_pass:
+				if self.game.already_pending(ASSIMILATOR) > 1:
+					economic_pass = False
+			
+			
 			if self.can_build_assimilators and (not self.game.already_pending(ASSIMILATOR) or economic_pass) and self.game.can_afford(ASSIMILATOR) and self.game.units(NEXUS).ready:
 				nexus = self.game.units(NEXUS).ready.random
 				vaspenes = self.game.state.vespene_geyser.closer_than(15.0, nexus)
@@ -430,67 +304,8 @@ class Builder:
 				return False
 		#find placement and select worker.
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
-			if worker:
-				placement = await self.game.find_placement(PYLON, goto)
-				if placement:
-					if _print_building:
-						print ("Building Pylon")
-					self.game.combinedActions.append(worker.build(PYLON, placement.position))
-					self.last_build = 2
-					return True
-		return False
-
-
-	async def build_pylons(self):
-		#build our positioned pylons first.
-		#if we are supply blocked, just build one.
-		if self.game.supply_left > 10:
-
-			if not self.pylon1_built:
-				self.build_pylon1 = True
-				return True
-			if not self.pylon2_built:
-				self.build_pylon2 = True
-				return True
-			if not self.pylon3_built:
-				self.build_pylon3 = True
-				return True
-			if not self.pylon4_built:
-				self.build_pylon4 = True
-				return True
-			if not self.pylon5_built:
-				self.build_pylon5 = True
-				return True
-			
-			
-			if not self.pylon6_built:
-				self.build_pylon6 = True
-				return True
-			
-			if not self.pylon7_built:
-				self.build_pylon7 = True
-				return True
-			
-			if not self.pylon8_built:
-				self.build_pylon8 = True
-				return True
-			
-			if not self.pylon9_built:
-				self.build_pylon9 = True
-				return True
-		
-		#build the rest as far from the start location as possible.
-		nexus = self.game.units(NEXUS).furthest_to(self.game.start_location)
-		#make sure nexus is the original.
-		if nexus.distance_to(self.game.start_location) > 10:
-			#find all the minerals near the nexus and place the pylons on the opposite side.
-			mf = self.game.state.mineral_field.closer_than(15, nexus).random
-			xnew = nexus.position[0] + (nexus.position[0] - mf.position[0])
-			ynew = nexus.position[1] + (nexus.position[1] - mf.position[1])
-			goto = position.Point2(position.Pointlike((xnew,ynew)))
-			#find placement and select worker.
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(PYLON, goto)
 				if placement:
@@ -505,7 +320,8 @@ class Builder:
 		#build them near pylon 4
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(STARGATE, goto.position)
 				if placement:
@@ -519,7 +335,8 @@ class Builder:
 	async def build_roboticsfacility(self):
 		goto = self.buildingPlacement(self.pylon1Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(ROBOTICSFACILITY, goto.position)
 				if placement:
@@ -537,7 +354,8 @@ class Builder:
 		goto = self.buildingPlacement(self.pylon3Loc)
 		#place it
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(GATEWAY, goto.position)
 				if placement:
@@ -551,7 +369,8 @@ class Builder:
 		#place it near pylon3.
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(CYBERNETICSCORE, goto.position)
 				if placement:
@@ -565,7 +384,8 @@ class Builder:
 		#place it near pylon2
 		goto = self.buildingPlacement(self.pylon3Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(FORGE, goto.position)
 				if placement:
@@ -578,7 +398,8 @@ class Builder:
 	async def build_fleetbeacon(self):
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(FLEETBEACON, goto.position)
 				if placement:
@@ -591,7 +412,8 @@ class Builder:
 	async def build_twilightcouncil(self):
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(TWILIGHTCOUNCIL, goto.position)
 				if placement:
@@ -604,7 +426,8 @@ class Builder:
 	async def build_roboticsbay(self):
 		goto = self.buildingPlacement(self.pylon1Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(ROBOTICSBAY, goto.position)
 				if placement:
@@ -618,7 +441,8 @@ class Builder:
 		#place it near pylon2.
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(TEMPLARARCHIVE, goto.position)
 				if placement:
@@ -632,7 +456,8 @@ class Builder:
 		#place it near pylon2.
 		goto = self.buildingPlacement(self.pylon4Loc)
 		if goto:
-			worker = self.game.select_build_worker(goto.position, force=True)
+			#worker = self.game.select_build_worker(goto.position, force=True)
+			worker = await self.game.select_closest_worker(goto.position)
 			if worker:
 				placement = await self.game.find_placement(DARKSHRINE, goto.position)
 				if placement:
@@ -670,8 +495,7 @@ class Builder:
 			# if self.game.units(PYLON).not_ready:
 			# 	if self.game.units(PYLON).not_ready.first.build_progress > 0:
 			# 		cannon_build = True		
-		
-		
+
 		if self.pylon1_built:
 			if not self.check_pylon_loc(self.pylon1Loc, 3):
 				self.pylon1_built = False
@@ -796,7 +620,8 @@ class Builder:
 			vaspenes = self.game.state.vespene_geyser.closer_than(15.0, nexus)
 			for vaspene in vaspenes:
 				if not self.game.units(ASSIMILATOR).closer_than(1.0, vaspene).exists:
-					worker = self.game.select_build_worker(vaspene.position)
+					#worker = self.game.select_build_worker(vaspene.position)
+					worker = await self.game.select_closest_worker(vaspene.position)
 					if worker:
 						if _print_building:
 							print ("Building Assimilator")						

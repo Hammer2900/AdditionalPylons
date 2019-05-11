@@ -27,7 +27,7 @@ class Fleet:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = 'Researching {}'.format(self.current_research)

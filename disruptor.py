@@ -44,6 +44,8 @@ class Disruptor:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -70,19 +72,23 @@ class Disruptor:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 			
 
 	def runList(self):
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
 
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.
-			
+	
 			#send a nova if we can.
 			if self.sendNova():
 				self.label = 'Firing Nova'
@@ -109,6 +115,12 @@ class Disruptor:
 			self.label = 'Defending'			
 			return #defending.
 		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+				
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -162,7 +174,7 @@ class Disruptor:
 
 	def findKiteTarget(self):
 		#find the closest unit to us and move away from it.
-		enemyThreats = self.closestEnemies.not_structure.closer_than(12, self.unit).sorted(lambda x: x.distance_to(self.unit))
+		enemyThreats = self.closestEnemies.not_structure.not_flying.closer_than(12, self.unit).sorted(lambda x: x.distance_to(self.unit))
 		if enemyThreats:
 			return enemyThreats[0]
 
@@ -172,13 +184,13 @@ class Disruptor:
 		#check to see if a nova exists already, if so, wait.
 		if len(self.game.units(DISRUPTORPHASED)) > 0:
 			#check to see if they re close to us.
-			if len(self.game.units(DISRUPTORPHASED).closer_than(10, self.unit)) > 0:
+			if len(self.game.units(DISRUPTORPHASED).closer_than(8, self.unit)) > 0:
 				return False
 		
 		targetEnemy = self.findNovaTarget()
 		if targetEnemy:
 			if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities and self.game.can_afford(EFFECT_PURIFICATIONNOVA):
-				self.game.combinedActions.append(self.unit(AbilityId.EFFECT_PURIFICATIONNOVA, targetEnemy.position))
+				self.game.combinedActions.append(self.unit(AbilityId.EFFECT_PURIFICATIONNOVA, targetEnemy))
 				return True
 		return False		
 
@@ -186,11 +198,40 @@ class Disruptor:
 
 	def findNovaTarget(self):
 		#if a nova is already in play, wait.
-		if self.game.units(NOVA).closer_than(5, self.unit):
+		if self.game.units(NOVA).closer_than(7, self.unit):
 			return None
+		#detect if any widowmines are near.
+		if len(self.game.burrowed_mines) > 0:
+			closestDodge = None
+			closestDistance = 10000
+			for tag, [position, lastseen] in self.game.burrowed_mines.items():
+				dist = self.unit.distance_to(position)
+				if dist < closestDistance:
+					closestDodge = position
+					closestDistance = dist
+			if closestDistance < 8:
+				return closestDodge
+		#check for burrowed lurkers.
+		if len(self.game.burrowed_lurkers) > 0:
+			closestDodge = None
+			closestDistance = 10000
+			for tag, position in self.game.burrowed_lurkers.items():
+				dist = self.unit.distance_to(position)
+				if dist < closestDistance:
+					closestDodge = position
+					closestDistance = dist
+			if closestDistance < 8:
+				return closestDodge		
+		#check for infestors.
+		if len(self.closestEnemies.of_type([INFESTOR,SIEGETANKSIEGED,SIEGETANK,GHOST]).closer_than(8, self.unit)) > 0:
+			our_target = self.closestEnemies.of_type([INFESTOR,SIEGETANKSIEGED,SIEGETANK,GHOST]).closest_to(self.unit)
+			return our_target.position
+		
+		
+		
 		#find atleast 3 targets in radius.
-		if self.closestEnemies.not_structure.not_flying.closer_than(10, self.unit):
-			enemycenter =  self.game.center3d(self.closestEnemies.not_structure.not_flying.closer_than(10, self.unit))
+		if self.closestEnemies.not_structure.not_flying.closer_than(8, self.unit):
+			enemycenter =  self.game.center3d(self.closestEnemies.not_structure.not_flying.closer_than(8, self.unit))
 			#check if there are 3 targets in the radius.
 			enemies = self.closestEnemies.not_structure.not_flying.closer_than(1.5, enemycenter)
 			if enemies and enemies.amount > 0:
@@ -199,7 +240,7 @@ class Disruptor:
 				#check to make sure there are no friendlies within 1.5 of the target.
 				friendlies = self.game.units.not_structure.not_flying.closer_than(1.5, closestEnemy)
 				if not friendlies:
-					return closestEnemy
+					return closestEnemy.position
 		return None
 	
 	def getTargetBonus(self, targetName):
@@ -224,7 +265,14 @@ class Disruptor:
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
-
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+		
 				
 			
 	

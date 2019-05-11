@@ -28,7 +28,7 @@ class RoboBay:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = 'Researching {}'.format(self.current_research)
@@ -83,7 +83,7 @@ class RoboBay:
 				return True				
 
 	def researchExtendedLance(self):
-		if self.game.units(COLOSSUS).amount >= 2 and not self._extended_lance_started and not self._extended_lance_researched:
+		if self.game.units(COLOSSUS).amount >= 1 and not self._extended_lance_started and not self._extended_lance_researched:
 			if AbilityId.RESEARCH_EXTENDEDTHERMALLANCE in self.abilities and self.game.can_afford(RESEARCH_EXTENDEDTHERMALLANCE):
 				self.game.combinedActions.append(self.unit(AbilityId.RESEARCH_EXTENDEDTHERMALLANCE))
 				self._extended_lance_started = True
