@@ -33,6 +33,7 @@ Weak against:
     Immortal
 '''
 _debug = False
+_max_range = 9.5
 
 class Disruptor:
 
@@ -184,7 +185,7 @@ class Disruptor:
 		#check to see if a nova exists already, if so, wait.
 		if len(self.game.units(DISRUPTORPHASED)) > 0:
 			#check to see if they re close to us.
-			if len(self.game.units(DISRUPTORPHASED).closer_than(8, self.unit)) > 0:
+			if len(self.game.units(DISRUPTORPHASED).closer_than(_max_range, self.unit)) > 0:
 				return False
 		
 		targetEnemy = self.findNovaTarget()
@@ -198,7 +199,7 @@ class Disruptor:
 
 	def findNovaTarget(self):
 		#if a nova is already in play, wait.
-		if self.game.units(NOVA).closer_than(7, self.unit):
+		if self.game.units(NOVA).closer_than(_max_range, self.unit):
 			return None
 		#detect if any widowmines are near.
 		if len(self.game.burrowed_mines) > 0:
@@ -209,7 +210,7 @@ class Disruptor:
 				if dist < closestDistance:
 					closestDodge = position
 					closestDistance = dist
-			if closestDistance < 8:
+			if closestDistance < _max_range:
 				return closestDodge
 		#check for burrowed lurkers.
 		if len(self.game.burrowed_lurkers) > 0:
@@ -220,18 +221,18 @@ class Disruptor:
 				if dist < closestDistance:
 					closestDodge = position
 					closestDistance = dist
-			if closestDistance < 8:
+			if closestDistance < _max_range:
 				return closestDodge		
 		#check for infestors.
-		if len(self.closestEnemies.of_type([INFESTOR,SIEGETANKSIEGED,SIEGETANK,GHOST]).closer_than(8, self.unit)) > 0:
+		if len(self.closestEnemies.of_type([INFESTOR,SIEGETANKSIEGED,SIEGETANK,GHOST]).closer_than(_max_range, self.unit)) > 0:
 			our_target = self.closestEnemies.of_type([INFESTOR,SIEGETANKSIEGED,SIEGETANK,GHOST]).closest_to(self.unit)
 			return our_target.position
 		
 		
 		
 		#find atleast 3 targets in radius.
-		if self.closestEnemies.not_structure.not_flying.closer_than(8, self.unit):
-			enemycenter =  self.game.center3d(self.closestEnemies.not_structure.not_flying.closer_than(8, self.unit))
+		if self.closestEnemies.not_structure.not_flying.closer_than(_max_range, self.unit):
+			enemycenter =  self.game.center3d(self.closestEnemies.not_structure.not_flying.closer_than(_max_range, self.unit))
 			#check if there are 3 targets in the radius.
 			enemies = self.closestEnemies.not_structure.not_flying.closer_than(1.5, enemycenter)
 			if enemies and enemies.amount > 0:
