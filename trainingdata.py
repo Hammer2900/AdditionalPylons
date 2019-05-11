@@ -20,6 +20,7 @@ class TrainingData:
 		self.strat_count = 6
 		self.best_win_per = 0
 		self.random_choice = True
+		self.first_game = False
 
 
 
@@ -29,6 +30,7 @@ class TrainingData:
 		#opp_id = "{}-{}".format(race, str(opp_id))
 		if not self.data_dict.get(opp_id):
 			#start with strat_id 1.
+			self.first_game = True
 			return 1
 		opp_data = self.data_dict.get(opp_id)
 		#print (str(opp_data))
@@ -91,13 +93,9 @@ class TrainingData:
 			strats.remove(best_strat)
 			try_strats = []
 			for strat in strats:
-				print ('check strat', strat)
 				if strat_stats.get(strat):
 					val = strat_stats.get(strat)
-					print ('strat losses', val[1])
-
 					if val[1] < best_losses:
-						print ('found try', str(strat))
 						try_strats.append(strat)
 			if len(try_strats) > 0:
 				self.random_choice = True
@@ -178,6 +176,10 @@ class TrainingData:
 		try:
 			with open("data/res.dat", "rb") as fp:
 				self.data_dict = pickle.load(fp)
+				battles = self.totalDataCount()
+				if battles > 20000:
+					print ('clearing data')
+					self.data_dict.clear()
 		except (OSError, IOError) as e:
 			self.data_dict = {}
 			
@@ -200,10 +202,12 @@ class TrainingData:
 ########
 
 	def stratWinPer(self):
-		if self.random_choice:
-			return ' (Random)'
+		if self.first_game:
+			return " I have no opponent data, so this is a good starting point."
+		elif self.random_choice:
+			return " I need more data, so I'm choosing randomly."
 		else:
-			return ' ({}% win)'.format(self.best_win_per)
+			return ' I win with it {}% of the time lately.'.format(self.best_win_per)
 
 		
 

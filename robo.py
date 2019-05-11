@@ -26,7 +26,7 @@ class Robo:
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		self.queueStatus()
 
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = "Busy {}".format(str(len(self.abilities)))
@@ -88,6 +88,10 @@ class Robo:
 	
 	
 	def bestTrain(self):
+		#if it's been at least 7 minutes in the game, make a warpprism if one doesn't exist.
+		if self.game.trueGates >= 3 and len(self.game.units.of_type([WARPPRISMPHASING,WARPPRISM])) == 0 and not self.game.already_pending(WARPPRISM):
+			return 'WarpPrism'
+		
 		bestName = None
 		bestCount = -1
 		bestNeeded = False
@@ -109,7 +113,7 @@ class Robo:
 				
 		#apparently couldn't build anything in the ideal list that is being allowed, check for anything to build.
 		#if minerals are backing up, then go ahead and build anything.
-		if self.game.minerals > 550:
+		if self.game.minerals > 550 and self.game.vespene > 500:
 			bestName = None
 			bestCount = -1		
 			for name, count in self.game._strat_manager.able_army.items():
@@ -129,7 +133,7 @@ class Robo:
 	
 
 	def queueStatus(self):
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			self.queued = False
 		else:
 			self.queued = True		

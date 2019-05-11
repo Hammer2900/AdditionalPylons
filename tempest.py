@@ -57,23 +57,32 @@ class Tempest:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 3000,
-			'SCV': 1000,
-			'SiegeTank': 3250,
-			'Battlecruiser': 3500,
-			'Carrier': 3500,
-			'Infestor': 3000,
-			'BroodLord': 3000,
-			'WidowMine': 3000,
-			'Mothership': 6000,
-			'Viking': 3000,
-			'VikingFighter': 3000,		
-			'Phoenix': 3000,	
-			'VoidRay': 3000,
-			'Raven': 2500,
-			'Banshee': 2000,
-			'Tempest': 3500,
+			#gets bonus vs massive.
+			#Terran
+			'Medivac': 40,
+			'SCV': 45,
+			'SiegeTank': 25,
+			'SiegeTankSieged': 25,
+			'Battlecruiser': 55,
+			'Thor': 40,
+			'WidowMine': 30,	
+			'WidowMineBurrowed': 50,		
+			'Raven': 51,
+			#Protoss
+			'Carrier': 15,
+			'Colossus': 15,
+			'Mothership': 20,
+			'Phoenix': 5,	
+			'VoidRay': 5,
+			'Tempest': 10,
+			#Zerg
+			'Infestor': 30,
+			'Ultralisk': 25,
+			'BroodLord': 25,
+			'Overlord': -100, #no reason to attack them first.
 		}
 		
 		
@@ -89,15 +98,24 @@ class Tempest:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 
 
 
 	def runList(self):
 		#get all the enemies around us.
+
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+		#enemies around us mode.
 			#see if we are able to escape if needed.
 			if self.game.canEscape(self) and self.game.keepSafe(self):
 				self.label = 'Retreating Safe'
@@ -129,7 +147,13 @@ class Tempest:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-			
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+					
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -174,7 +198,14 @@ class Tempest:
 	def isRetreating(self) -> bool:
 		return self.retreating
 
-
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+		
 
 		
 		

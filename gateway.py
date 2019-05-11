@@ -37,7 +37,7 @@ class Gateway:
 		else:
 			self.label = "Busy {}".format(str(len(self.abilities)))
 		self.label += " {}".format(str(self.queued))
-#		self.label += "- {}".format(str(unit.noqueue))
+#		self.label += "- {}".format(str(unit.is_idle))
 		#debugging info
 		if _debug or self.unit.is_selected:
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
@@ -110,7 +110,7 @@ class Gateway:
 			else:
 				self.queued = False
 		else:
-			if self.unit.noqueue:
+			if self.unit.is_idle:
 				self.queued = False
 			else:
 				self.queued = True		
@@ -173,6 +173,12 @@ class Gateway:
 	
 	async def warpgate_placement(self, unit_ability):
 		#todo: first, check for a warp prism in pylon mode.
+		if not self.game.under_attack and len(self.game.units(WARPPRISMPHASING).ready) > 0:
+			pos = self.game.units(WARPPRISMPHASING).ready.random.position.to2.random_on_distance(3)
+			placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+			if placement:
+				return placement			
+
 		#find super pylons and sort them closest to the enemy.
 		#loop the pylons and find one that isn't in range of an enemy.
 		#if no super pylons exist, find any pylon and do it again.
@@ -218,13 +224,14 @@ class Gateway:
 					return placement
 		else:
 			#just place the unit closest to the defensive position.
-			pylon = self.game.units(PYLON).ready.closest_to(self.game.defensive_pos)
-			if pylon:
-				pos = pylon.position.to2.random_on_distance(4)
-				placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
-				if placement:
-					#print ('defensive placement')
-					return placement
+			if len(self.game.units(PYLON).ready) > 0 and self.game.defensive_pos:
+				pylon = self.game.units(PYLON).ready.closest_to(self.game.defensive_pos)
+				if pylon:
+					pos = pylon.position.to2.random_on_distance(4)
+					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
+					if placement:
+						#print ('defensive placement')
+						return placement
 		return None	
 	
 	

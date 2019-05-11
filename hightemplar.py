@@ -45,18 +45,13 @@ class HighTemplar:
 		self.last_target = None
 		self.label = 'Idle'
 		self.attack_range = 6
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
 			'SCV': 100,
 			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
 			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			'WidowMine': 300,	
 		}		
 
 	def make_decision(self, game, unit):
@@ -77,17 +72,23 @@ class HighTemplar:
 
 	def runList(self):
 		if not self.unit.is_ready:
-			return #warping in		
+			return #warping in
+		
 		if self.morphArchon():
 			self.label = 'Morphing'
 			return #morphing, do nothing else.
 
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.	
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+		
+
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
-			#keep safe from effects
-			if self.game.effectSafe(self):
-				self.label = 'Dodging'
-				return #dodging effects.
 			
 			#see if we are able to escape if needed.
 			if self.game.canEscape(self) and self.game.keepSafe(self):
@@ -130,6 +131,12 @@ class HighTemplar:
 			self.label = 'Defending'			
 			return #defending.
 		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+				
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -202,7 +209,14 @@ class HighTemplar:
 	def isRetreating(self) -> bool:
 		return self.retreating
 
-			
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+					
 	
 		
 

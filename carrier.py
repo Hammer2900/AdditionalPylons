@@ -40,7 +40,7 @@ Weak against:
     Corruptor
     Tempest
 '''
-_debug = False
+_debug = True
 
 class Carrier:
 
@@ -52,15 +52,9 @@ class Carrier:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
 			'Mothership': 600,
 			'Viking': 300,
 			'VikingFighter': 300,		
@@ -79,10 +73,19 @@ class Carrier:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 
 	def runList(self):
+		#keep safe from effects
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.		
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)	
+		
+
 		#get all the enemies around us.
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
@@ -109,7 +112,13 @@ class Carrier:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -171,7 +180,7 @@ class Carrier:
 
 	def findKiteTarget(self):
 		#find the closest unit to us and move away from it.
-		enemyThreats = self.closestEnemies.closer_than(10, self.unit).filter(lambda x: x.can_attack_air).sorted(lambda x: x.distance_to(self.unit))
+		enemyThreats = self.closestEnemies.closer_than(6, self.unit).filter(lambda x: x.can_attack_air).sorted(lambda x: x.distance_to(self.unit))
 		if enemyThreats:
 			return enemyThreats[0]
 
@@ -198,5 +207,12 @@ class Carrier:
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
-
+	@property
+	def isHallucination(self) -> bool:
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
+		
 	

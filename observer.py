@@ -24,7 +24,7 @@ Weak against:
     Missile Turret
     Spore Crawler
 '''
-_debug = False
+_debug = True
 
 class Observer:
 
@@ -37,6 +37,8 @@ class Observer:
 		self.last_target = None
 		self.label = 'Idle'
 		self.expansionScout = False
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -84,7 +86,6 @@ class Observer:
 			self.label = 'Expansion Check'
 			return #making sure the next expansion slot is available.		
 
-
 	def runListExp(self):
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
@@ -123,12 +124,13 @@ class Observer:
 			self.label = 'Scout Enemy'
 			return #moving towards enemy.
 
-
-
-
 	def runList(self):
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+
 		self.closestEnemies = self.game.getUnitEnemies(self)
-		if self.closestEnemies.amount > 0:		
+		if self.closestEnemies.amount > 0:
 			if self.keepSafe():
 				self.label = 'Spotter Retreating'
 				return #trying to stay alive.
@@ -213,7 +215,8 @@ class Observer:
 			
 	def checkExpansion(self):
 		#check to see if a unit is already there, if not, move to it.
-		#self.game.expPos
+		if not self.game.expPos:
+			return #there is no expansion to move too.
 		
 		if len(self.game.units(OBSERVER)) > 0 and self.game.units(OBSERVER).closer_than(2, self.game.expPos).amount == 1 and self.unit.distance_to(self.game.expPos) > 3:
 			return False #someone already there.
@@ -280,4 +283,10 @@ class Observer:
 	def isSolo(self) -> bool:
 		return self.solo
 		
-	
+	@property
+	def isHallucination(self) -> bool:
+		return False
+
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome

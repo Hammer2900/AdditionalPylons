@@ -26,8 +26,7 @@ class CyberCore:
 		self._air_armor_started = False
 		self._air_armor2_started = False
 		self._air_armor3_started = False		
-
-		
+	
 		self.current_research = None
 
 		
@@ -37,7 +36,7 @@ class CyberCore:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		
-		if self.unit.noqueue:
+		if self.unit.is_idle:
 			await self.runList()
 		else:
 			self.label = 'Researching {}'.format(self.current_research)
@@ -139,7 +138,7 @@ class CyberCore:
 		
 	def researchWarpgate(self):
 		#always train warpgate asap.
-		if not self._warpgate_started and not self._warpgate_researched:
+		if not self._warpgate_started and not self._warpgate_researched and len(self.game.units.filter(lambda x: not x.name in ['Probe'] and (x.can_attack_ground or x.can_attack_air))) > 0:
 			if AbilityId.RESEARCH_WARPGATE in self.abilities and self.game.can_afford(RESEARCH_WARPGATE):
 				self.game.combinedActions.append(self.unit(AbilityId.RESEARCH_WARPGATE))
 				self._warpgate_started = True

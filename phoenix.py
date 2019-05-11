@@ -53,21 +53,25 @@ class Phoenix:
 		self.last_action = ''
 		self.last_target = None
 		self.label = 'Idle'
-		self.scout = None
 		self.beam_unit = None
 		self.base_searched = False
+		self.beam_move_target = None
+		self.bonus_range = 0
+		self.is_hallucination = None
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
-			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,		
+			#gets bonus vs light units.
+			#Terran
+			'Medivac': 40,
+			'Raven': 41,
+			'Banshee': 10,
+			#Protoss
+			'Phoenix': 5,
+			'Observer': 10,
+			#Zerg
+			'Mutalisk': 5,
+			'Overlord': -100, #no reason to attack them first.
 		}		
 
 
@@ -77,31 +81,29 @@ class Phoenix:
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
 		self.bonus_range = 0
+		self.beam_move_target = None
 		if self.game.buildingList.pulseCrystalsAvail:
 			self.bonus_range = 2
 			
-		if self.scout is None:
+		if self.is_hallucination is None:
 			if AbilityId.GRAVITONBEAM_GRAVITONBEAM in self.abilities:
-				self.scout = False
+				self.is_hallucination = False
 			else:
-				self.scout = True
+				self.is_hallucination = True
 
-		if self.scout:
+		if self.is_hallucination:
 			self.runScout()
 		else:
 			self.runList()
 
 		if not 'gravitonbeam' in str(self.unit.orders).lower():
 			self.beam_unit = None
-		else:
-			self.label = 'Beaming Debug'
-
 
 		#debugging info
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 
 
@@ -122,8 +124,19 @@ class Phoenix:
 		
 
 	def runList(self):
+
+		#enemies around us mode.
+		if self.game.effectSafe(self):
+			self.label = 'Dodging'
+			return #dodging effects.
+		
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+
+		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:		
+
 			#1 priority is always attack first if we can
 			#check to see if a phoenix near us is beaming something, if so let's attack it.
 			if self.attackBeamed():
@@ -136,9 +149,9 @@ class Phoenix:
 	
 			#2 keep safe again.
 			if self.game.keepSafe(self):
-				if AbilityId.CANCEL_GRAVITONBEAM in self.abilities:
-					self.beam_unit = None
-					self.game.combinedActions.append(self.unit(AbilityId.CANCEL_GRAVITONBEAM))			
+				# if AbilityId.CANCEL_GRAVITONBEAM in self.abilities:
+				# 	self.beam_unit = None
+				# 	self.game.combinedActions.append(self.unit(AbilityId.CANCEL_GRAVITONBEAM))			
 				self.label = 'Retreating Death'
 				return #staying alive
 	
@@ -147,15 +160,15 @@ class Phoenix:
 				self.label = 'Kiting'
 				return #kiting
 	
-			#4 check if we can beam someone up.
-			if self.gravitonBeam():
-				self.label = 'Beaming'
-				return
-
 			#look around our range and find the highest target value and move towards it.
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):
 				self.label = 'Moving Priority Target'
 				return #moving towards a better target.			
+
+			#4 check if we can beam someone up.
+			# if self.gravitonBeam():
+			# 	self.label = 'Beaming'
+			# 	return
 			
 			
 		#if we are in defend mode and we aren't under attack, then go to the defend point.
@@ -163,7 +176,13 @@ class Phoenix:
 			self.game.defend(self)
 			self.label = 'Defending'			
 			return #defending.
-
+		
+		#move to rally point before attacking:
+		if self.game.moveRally and not self.game.under_attack:
+			self.game.rally(self)
+			self.label = 'Rallying'
+			return #moving to rally
+		
 		#move to friendly.
 		if self.game.moveToFriendlies(self):
 			self.label = 'Moving Friend'
@@ -193,8 +212,35 @@ class Phoenix:
 
 		self.label = 'Idle'
 
-
 	def gravTarget(self):
+		if AbilityId.GRAVITONBEAM_GRAVITONBEAM in self.abilities:
+			pickup_target = None
+			
+			ok_units = [PROBE, SCV, DRONE, IMMORTAL, MARAUDER, STALKER, REAPER, HELLION, CYCLONE, SIEGETANK, QUEEN, LURKER, INFESTOR, ROACH, RAVAGER, HIGHTEMPLAR, DARKTEMPLAR]
+			pickables = self.closestEnemies.of_type(ok_units)
+			if len(pickables) > 0:
+				#look around for a unit to lift, giving priority to ones that can attack us.
+				if len(pickables.filter(lambda x: x.can_attack_air)) > 0:
+					#take the one with the most hitpoints.
+					pickup_target = pickables.filter(lambda x: x.can_attack_air).sorted(lambda x: x.health + x.shield, reverse=True).first
+				else:
+					#lift any of them.
+					pickup_target = pickables.sorted(lambda x: x.health + x.shield, reverse=True).first
+			elif self.unit.energy > 100 and len(self.closestEnemies.filter(lambda x: not x.is_structure and not x.is_flying and not x.is_massive)) > 0:
+				#pick up the one closest to us.
+				pickup_target = self.closestEnemies.filter(lambda x: not x.is_flying and not x.is_massive).sorted(lambda x: x.health + x.shield, reverse=True).first
+			if pickup_target:
+				#check to see if we are in range to pickup, otherwise move to it.
+				if self.unit.distance_to(pickup_target) > 4:
+					if self.checkNewAction('move', pickup_target.position[0], pickup_target.position[1]):
+						self.game.combinedActions.append(self.unit.move(self.game.leadTarget(pickup_target, self)))
+					self.beam_move_target = pickup_target
+					return True
+				else:
+					self.game.combinedActions.append(self.unit(AbilityId.GRAVITONBEAM_GRAVITONBEAM, pickup_target))
+					self.beam_unit = pickup_target
+					return True				
+			
 		return False
 
 	def searchEnemies(self):
@@ -230,7 +276,7 @@ class Phoenix:
 		return False
 	
 	
-	def gravitonBeam(self):
+	def gravitonBeam(self):		
 		if self.unit.weapon_cooldown == 0 and not self.game.unitList.getGravitonTarget(self):    #make sure we aren't just between something else we could be attacking.
 			ok_units = [PROBE, SCV, DRONE, IMMORTAL, MARAUDER, STALKER, REAPER, HELLION, CYCLONE, SIEGETANK, QUEEN, LURKER, INFESTOR, ROACH, RAVAGER, HIGHTEMPLAR, DARKTEMPLAR]
 			if AbilityId.GRAVITONBEAM_GRAVITONBEAM in self.abilities:
@@ -289,8 +335,21 @@ class Phoenix:
 			return True
 		return False
 	
+	@property
+	def isMovingBeamTarget(self) -> bool:
+		if self.beam_move_target:
+			return True
+		return False
 
-
+	@property
+	def isHallucination(self) -> bool:
+		if self.is_hallucination:
+			return True
+		return False
+	
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome	
 		
 		
 		

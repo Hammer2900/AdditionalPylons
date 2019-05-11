@@ -51,10 +51,14 @@ class Probe:
 		self.rush_defender = False
 		self.lite_defender = False
 		self.proxy_placed = False
+		self.nexus_builder = False
+		self.nexus_position = None
 		#gathering variables.
 		self.gather_target = None
 		self.vas_miner = False
 		self.next_assim_update = 0
+		self.comeHome = False
+		self.homeTarget = None
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -71,7 +75,7 @@ class Probe:
 		
 	def make_decision(self, game, unit):
 		self.game = game
-		if not self.rush_defender and not self.lite_defender and self.game.last_iter % 5 != 0:
+		if not self.nexus_builder and not self.rush_defender and not self.lite_defender and self.game.last_iter % 5 != 0:
 			return #don't need to run so often.
 
 		self.unit = unit
@@ -86,6 +90,10 @@ class Probe:
 			self.lite_defender = False			
 			self.removeGatherer()
 
+
+		#check if we need to come home and defend.
+		self.comeHome = self.game.checkHome(self)
+
 		#choose our action by role.
 		if self.scout:
 			self.scoutList()
@@ -93,6 +101,8 @@ class Probe:
 			self.rushDefense()
 		elif self.lite_defender:
 			self.clearWorkers()
+		elif self.nexus_builder:
+			self.nexusBuilder()
 		else:
 			self.gatherList()
 
@@ -100,7 +110,7 @@ class Probe:
 		if _debug or self.unit.is_selected:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
-				self.game._client.debug_line_out(spos, self.last_target, (155, 255, 25))
+				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)
 		
 ################
@@ -181,7 +191,7 @@ class Probe:
 			return #dodging effects.
 			
 		#mine until it's 10 seconds of game time.
-		if self.game.time < 10:
+		if self.game.time < 10 or self.checkHaveMinerals():
 			self.label = 'Temp Mining'
 			self.last_action = 'miner'
 			return #building
@@ -224,6 +234,11 @@ class Probe:
 		
 		self.closestEnemies = self.game.getUnitEnemies(self)
 		if self.closestEnemies.amount > 0:
+			#enemies around us mode.
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
+
 			if self.game.canEscape(self) and self.game.keepSafe(self):
 				self.label = 'C Retreating Safe'
 				return #staying alive		
@@ -277,6 +292,82 @@ class Probe:
 			self.rush_defender = False
 	
 
+	def nexusBuilder(self):
+		#print (str(self.unit.orders).lower())
+		self.enemyWorkers = self.game.getUnitEnemies(self, radius=6)
+		#check for a worker rush incoming, if so, move back to base.
+		if len(self.closestEnemies.of_type([PROBE,SCV,DRONE])) > 2:
+			#go back to work.
+			self.game.unitList.freeNexusBuilders()
+			self.label = 'Incoming Rush'
+			return
+
+		self.closestEnemies = None
+		if self.game.expPos:
+			self.closestEnemies = self.game.cached_enemies.closer_than(4, self.game.expPos)
+		#self.closestEnemies = self.game.getUnitEnemies(self, radius=6)
+		if self.closestEnemies.amount > 0:
+			#keep safe from effects
+			if self.game.effectSafe(self):
+				self.label = 'Dodging'
+				return #dodging effects.
+			
+			#always attack if we can.
+			if self.game.attack(self):
+				self.label = 'Attacking'
+				return #attacked already this step.
+			
+			#move the closest known enemy.
+			if self.game.moveToEnemies(self):
+				self.label = 'C Moving Enemy'
+				return #moving to next target.	
+		
+		#make sure we arne't holding minerals.
+		if self.checkHaveMinerals():
+			self.label = 'Returning Minerals'
+			return
+
+		#check if we are being asked to build something, if so just build it.
+		if not self.knownActions():
+			self.label = 'Building'
+			return #building
+
+		if self.moveToExpansion():
+			self.label = 'Moving to Expansion'
+			return
+		
+		self.label = 'Waiting to build Nexus'
+
+		
+######################
+#Nexus Build Function#
+######################
+
+	def moveToExpansion(self):
+		#get the distance to expansion, if it's more than 1, move to it.
+		#find a mineral patch close to the location and move to it.
+		if not self.nexus_position:
+			self.nexus_position = self.game.state.vespene_geyser.closer_than(15.0, self.game.expPos).first
+			self.nexus_position = self.game.expPos
+		
+		dist = self.unit.distance_to(self.nexus_position)
+		if dist > 6.5:
+			if self.checkNewAction('move', self.nexus_position.position.x, self.nexus_position.position.y):
+				self.game.combinedActions.append(self.unit.move(self.nexus_position))
+			self.last_target = Point3((self.nexus_position.position.x, self.nexus_position.position.y, self.game.getHeight(self.nexus_position.position)))
+			return True
+		elif dist < 5.5:
+			#move away.
+			move_distance = dist - 6
+			targetpoint = self.unit.position.towards(self.nexus_position, distance=move_distance)	
+			if self.checkNewAction('move', targetpoint.position.x, targetpoint.position.y):
+				self.game.combinedActions.append(self.unit.move(targetpoint))
+			self.last_target = Point3((targetpoint.position.x, targetpoint.position.y, self.game.getHeight(targetpoint.position)))
+			return True
+			
+		return False
+	
+	
 
 ####################
 #Scouting Functions#
@@ -321,12 +412,14 @@ class Probe:
 		#print (totalLocs, knockoff)
 		#only use the ones near our base.
 		del locations[totalLocs:]
-		nextPos = random.choice(locations)[1]
-		if self.checkNewAction('move', nextPos[0], nextPos[1]):
-			self.game.combinedActions.append(self.unit.move(nextPos))
-		self.last_target = Point3((nextPos.position.x, nextPos.position.y, self.game.getHeight(nextPos.position)))
-		self.label = 'Searching for Enemy Proxies'
-		return True		
+		if len(locations) > 0:
+			nextPos = random.choice(locations)[1]
+			if self.checkNewAction('move', nextPos[0], nextPos[1]):
+				self.game.combinedActions.append(self.unit.move(nextPos))
+			self.last_target = Point3((nextPos.position.x, nextPos.position.y, self.game.getHeight(nextPos.position)))
+			self.label = 'Searching for Enemy Proxies'
+			return True
+		return False
 			
 	def placeProxies(self):
 		if  self.game.time < 12240 or not self.game.can_spend or self.game._strat_manager.saving or self.game.buildingList.pylonsRequested:
@@ -472,11 +565,20 @@ class Probe:
 		if 'gather' in str(self.unit.orders).lower() and self.gather_target:
 			return True
 
+
+	def checkHaveMinerals(self):
+		if 'return' in str(self.unit.orders).lower():
+			return True
+		if 'returncargo' in str(self.unit.orders).lower():
+			return True
+		return False
+
 	def checkReturning(self):
 		if 'return' in str(self.unit.orders).lower() and self.gather_target:
 			return True
 		if 'returncargo' in str(self.unit.orders).lower() and self.gather_target:
-			return True		
+			return True
+		return False
 	
 	def busyBuilding(self):
 		if not self.knownActions():
@@ -544,7 +646,7 @@ class Probe:
 		#for nexus in self.game.units(NEXUS).ready:
 		for nexus in nexuslist:
 			#print (self.unit.tag, 'checking for minerals')
-			for mf in self.game.state.mineral_field.closer_than(10, nexus).sorted(lambda x: self.unit.distance_to(nexus.position)):
+			for mf in self.game.state.mineral_field.closer_than(12, nexus).sorted(lambda x: self.unit.distance_to(nexus.position)):
 				if self.assigned[mf.tag] < 2:
 					#print (self.unit.tag, 'mineral found')
 					return mf
@@ -676,4 +778,12 @@ class Probe:
 	def isRetreating(self) -> bool:
 		return self.retreating
 	
-	
+	@property
+	def isHallucination(self) -> bool:
+		return False
+		
+	@property
+	def sendHome(self) -> bool:
+		return self.comeHome
+
+			

@@ -68,24 +68,26 @@ class Nexus:
 
 	async def runList(self):
 		#see if we can chronoboost anything.
-		await self.chronoBoost()
-		#check to make sure we aren't under attack, if we are trigger
+
 		self.checkUnderAttack()
 		#check to see if we need workers
 		self.checkNeedWorkers()
 		#check for rush with workers.
 		self.detectWorkerAllIn()
-		#check to see if being cheesed.
-		#self.detectPersonalCheese()
 
 		#check to see if saving resources are being requested.
 		if self.resourcesSaved():
 			self.label = 'Resources being saved'
 			return
 		
-		#check to see if we need to build reaper cheese defense.
-		#await self.reaperCheeseDef()
-		#await self.generalDef()
+		if self.recallDefense():
+		 	self.label = 'Recalling'
+		 	return
+		#if self.main_base:
+		# 	self.findRecallArmy(200)
+
+		await self.chronoBoost()
+		#check to make sure we aren't under attack, if we are trigger
 		
 		if self.game.can_spend:
 			
@@ -101,6 +103,70 @@ class Nexus:
 		
 		self.label = 'Idle'
 
+
+
+
+
+	def recallDefense(self):
+		#if we are under attack, count the power of the attacking army.
+		if self.main_base and self.defending and self.unit.energy >= 50:
+			near_enemies = self.game.cached_enemies.filter(lambda x: not x.name in ['Probe','Drone','SCV'] and (x.can_attack_ground or x.can_attack_air) and x.distance_to(self.unit) <= 40)
+			def_enemies = near_enemies.closer_than(20, self.unit)
+			score = self.game._strat_manager.score_rally(near_enemies)
+			score2 = self.game._strat_manager.score_rally(def_enemies)
+			#if we need more units, look to recall
+			#make sure most of the enemy units are close.
+			#if score2 >= score / 1.5:
+			if score > 0:
+				#enemies have moved in.
+				#print ('enemies close enough for moving')
+				#count the power of the army defending near us in a larger range.
+				near_friends = self.game.units.filter(lambda x: not x.name in ['Probe'] and (x.can_attack_ground or x.can_attack_air) and x.distance_to(self.unit) <= 20)
+				friend_score = self.game._strat_manager.score_rally(near_friends)
+				score_needed = score / 1.25
+				if friend_score <= score / 1.25:
+					#print ('need more defense', score_needed)
+					#look to see if we have units in the midfield, or attacking.
+					self.findRecallArmy(score_needed)
+					
+					
+				#else:
+					#print ('above min:', score_needed)
+				
+				#print (str(self.unit.tag), str(len(near_friends)), friend_score)
+				
+			
+			#see if there is a group of them in an area with enough power to defend.
+			#recall those units to the nexus to defend.
+			#print (str(self.unit.tag), str(len(near_enemies)), score, '-', str(len(def_enemies)), score2)
+		
+
+	def findRecallArmy(self, scoreMin):
+		if self.game.defend_only and AbilityId.EFFECT_MASSRECALL_NEXUS in self.abilities:
+			#score the army at the defensive position and see if stuff is there, if so, port it.
+			near_friends = self.game.units.filter(lambda x: not x.name in ['Probe'] and (x.can_attack_ground or x.can_attack_air) and x.distance_to(self.game.defensive_pos) <= 2.5)
+			score = self.game._strat_manager.score_rally(near_friends)
+			#print ('recall scoring:', score, 'min', scoreMin)
+			if score >= scoreMin:
+				print ('recalling')
+				#recall the units to our position.
+				self.game.combinedActions.append(self.unit(AbilityId.EFFECT_MASSRECALL_NEXUS, self.game.defensive_pos))
+
+
+	def findRecallArmyExp(self, scoreMin):
+		#get the center of our fighting units.
+		possibles = self.game.units.filter(lambda x: not x.is_structure
+										   and not x.name in ['Probe']
+										   and (x.can_attack_ground or x.can_attack_air)
+										   and x.distance_to(self.unit) >= 30)
+		if len(possibles) > 0:
+			center = possibles.center
+			self.game._client.debug_sphere_out(Point3((center.position.x, center.position.y, self.unit.position3d.z)), 2.5, Point3((66, 69, 244))) #blue
+			#self.game._client.debug_text_3d('P1', Point3((self.p1.position.x, self.p1.position.y, self.unit.position3d.z)))
+			print ('center', center)
+			print (len(possibles))
+					
+		
 
 
 	def detectWorkerAllIn(self):
@@ -125,25 +191,6 @@ class Nexus:
 		else:
 			self.personal_cheese = False			
 
-	# async def generalDef(self):
-	# 	#build a pylon and cannon in front of nexus to provide vision
-	# 	#make sure not in stage 1.
-	# 	if self.game.can_spend and self.game._strat_manager.stage1complete:
-	# 		#make see if there is a pylon near us.
-	# 		if not self.game._build_manager.check_pylon_loc(self.p1, searchrange=3):
-	# 			if self.game.can_afford(PYLON) and not self.game.already_pending(PYLON):
-	# 				await self.game.build(PYLON, near=self.p1)
-	# 				self.game.can_spend = False
-	# 				return True
-	# 		#find cannons near us, build 1 if none exist.
-	# 		else:
-	# 			if not self.game.units(PHOTONCANNON).closer_than(12, self.unit).exists and self.game.units(PYLON).closer_than(6, self.unit).ready.exists and self.game.units(FORGE).ready.exists:
-	# 				if self.game.can_afford(PHOTONCANNON) and not self.game.already_pending(PHOTONCANNON):
-	# 					pylon = self.game.units(PYLON).closer_than(6, self.unit).ready.random
-	# 					await self.game.build(PHOTONCANNON, near=pylon)
-	# 					self.game.can_spend = False
-	# 					return True
-
 
 	async def reaperCheeseDef(self):
 		#if reaper cheese is detected, build cannons at the mineral lines.
@@ -163,7 +210,7 @@ class Nexus:
 					
 	def trainMothership(self):
 		#check to see if we are queued, if so, leave.
-		if not self.unit.noqueue:
+		if not self.unit.is_idle:
 			return True
 
 		#only build when queues are full to maximize real military production
@@ -179,7 +226,7 @@ class Nexus:
 		
 	def trainProbe(self):
 		#check to see if we are queued, if so, leave.
-		if not self.unit.noqueue:
+		if not self.unit.is_idle:
 			return True
 		#check if it's the start of the game and we don't have a pylon yet.
 		if self.game.time < 120 and self.game.units(PYLON).amount == 0 and self.game.units(PROBE).amount >= 13:
@@ -222,8 +269,13 @@ class Nexus:
 		if self.game.units(PROBE).amount < (base_workers + extra_workers):
 			total_workers_needed = base_workers + extra_workers
 		
+		
 		#count the probes around us and see if we have enough.
+		#if there is a worker doing a nexus build, we don't need workers.
 		ineed_workers = False
+		if self.game.unitList.nexusBuilderAssigned:
+			return
+
 		if self.game.units(PROBE).closer_than(20, self.unit).amount < total_workers_needed:
 			#do a check to make sure workers aren't long distance mining giving us less.
 			if (len(self.game.units(NEXUS).ready) * (base_workers + extra_workers)) >= len(self.game.units(PROBE)):
@@ -256,52 +308,56 @@ class Nexus:
 		
 	async def chronoBoost(self):
 		if self.game.time < 120 and self.game.units(PYLON).amount == 0:
-			return False #don't boost until we have a pylon out.		
+			return False #don't boost until we have a pylon out.
+		#if it's beyond 5 minutes into the game, save for a recall.
+		if self.main_base and self.game.time > 300 and self.unit.energy < 100:
+			return False
+		
 		if AbilityId.EFFECT_CHRONOBOOSTENERGYCOST in self.abilities:
 			#check if research is being done and buff it if so.
 			#cyberneticcore
 			#if we are being attacked early in game, do the gateway first to get the unit out faster.
 			if self.game.cached_enemies.of_type([REAPER]).closer_than(40, self.unit).amount > 0:
 				for gateway in self.game.units(GATEWAY):
-					if not gateway.noqueue and gateway.orders[0].progress < 0.75 and not gateway.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+					if not gateway.is_idle and gateway.orders[0].progress < 0.75 and not gateway.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 						self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, gateway))
-						break				
+						return True				
 		
 			for core in self.game.units(CYBERNETICSCORE):
-				if not core.noqueue and core.orders[0].progress < 0.75 and not core.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+				if not core.is_idle and core.orders[0].progress < 0.75 and not core.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, core))
-					break
+					return True
 			#forge
 			for forge in self.game.units(FORGE):
-				if not forge.noqueue and forge.orders[0].progress < 0.75 and not forge.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+				if not forge.is_idle and forge.orders[0].progress < 0.75 and not forge.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, forge))
-					break	
+					return True	
 			#twilightcouncil
 			for tw in self.game.units(TWILIGHTCOUNCIL):
-				if not tw.noqueue and tw.orders[0].progress < 0.65 and not tw.has_buff(BuffId.CHRONOBOOSTENERGYCOST):					
+				if not tw.is_idle and tw.orders[0].progress < 0.65 and not tw.has_buff(BuffId.CHRONOBOOSTENERGYCOST):					
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, tw))
-					break
+					return True
 			#roboticsbay
 			for bay in self.game.units(ROBOTICSBAY):
-				if not bay.noqueue and bay.orders[0].progress < 0.65 and not bay.has_buff(BuffId.CHRONOBOOSTENERGYCOST):					
+				if not bay.is_idle and bay.orders[0].progress < 0.65 and not bay.has_buff(BuffId.CHRONOBOOSTENERGYCOST):					
 					self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, bay))
-					break
+					return True
 				
 			nexus_boost = False
-			if not self.unit.noqueue and not self.unit.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+			if not self.unit.is_idle and not self.unit.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 				if self.unit.orders[0].ability.id == AbilityId.NEXUSTRAIN_PROBE and self.unit.orders[0].progress < 0.25 and self.needWorkers:
 					nexus_boost = True
 				if self.unit.orders[0].ability.id == AbilityId.NEXUSTRAINMOTHERSHIP_MOTHERSHIP and self.unit.orders[0].progress < 0.75:
 					nexus_boost = True
 			
 			
-			if not self.unit.noqueue and nexus_boost and await self.game.can_cast(self.unit, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, self.unit, cached_abilities_of_unit=self.abilities):
+			if not self.unit.is_idle and nexus_boost and await self.game.can_cast(self.unit, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, self.unit, cached_abilities_of_unit=self.abilities):
 				self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, self.unit))
 			else:
 				for building in self.game.units.structure:
-					if not building.noqueue and building.orders[0].progress < 0.35 and await self.game.can_cast(self.unit, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building, cached_abilities_of_unit=self.abilities) and not building.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
+					if not building.is_idle and building.orders[0].progress < 0.35 and await self.game.can_cast(self.unit, AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building, cached_abilities_of_unit=self.abilities) and not building.has_buff(BuffId.CHRONOBOOSTENERGYCOST):
 						self.game.combinedActions.append(self.unit(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, building))
-						break
+						return True
 
 	async def pylonLocations(self):
 		#find positions around the nexus for pylons, cannons and shields.
@@ -312,7 +368,7 @@ class Nexus:
 			
 			mins = self.game.state.mineral_field.closer_than(15, self.unit)
 			vasp = self.game.state.vespene_geyser.closer_than(15, self.unit)
-			mf = Units((mins + vasp), self.game)
+			mf = Units((mins + vasp))
 			f_distance = 0
 			mineral_1 = None
 			mineral_2 = None
