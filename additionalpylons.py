@@ -36,7 +36,7 @@ _debug_effects = False
 _debug_combat = False
 _local_ladder = True
 _use_data = False
-_version = 'v1.509'
+_version = 'v1.511'
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 _test_strat_id = 0 #0 = turned off
 _collect_data = False  #collect data against protoss enemies if true.
