@@ -5,8 +5,8 @@ from sc2.player import Bot, Computer
 import random
 
 # Load bot
-from additionalpylons import AdditionalPylons
-bot = Bot(Race.Protoss, AdditionalPylons())
+from additionalpylons import MyBot
+bot = Bot(Race.Protoss, MyBot())
 #bot = Bot(Race.Random, ExampleBot())
 
 
@@ -34,6 +34,6 @@ if __name__ == '__main__':
         # Local game
         print("Starting local game...")      
         sc2.run_game(sc2.maps.get(random.choice(allmaps)), [
-            Bot(Race.Protoss, AdditionalPylons()),
+            Bot(Race.Protoss, MyBot()),
             Computer(_opponent, _difficulty)
         ], realtime=_realtime)

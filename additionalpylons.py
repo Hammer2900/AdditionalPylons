@@ -42,7 +42,7 @@ _test_strat_id = 0 #0 = turned off
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 
-class AdditionalPylons(sc2.BotAI):
+class MyBot(sc2.BotAI):
 	def __init__(self):
 		self.opp_id = self.findOppId()
 		self._build_manager = buildControl(self)
