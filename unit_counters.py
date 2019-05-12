@@ -26,10 +26,10 @@ class UnitCounter:
 			'Mothership': 8
 		}
 		
-		#current power = supply * tier
+		#current power based on = Min costs + (Gas Costs * 2)
 		self.unitPower = {
 			#zerg
-			'Overlord': 0.001,
+			'Overlord': 0,
 			'Baneling': 100,
 			'Zergling': 25,
 			'ZerglingBurrowed': 25,
@@ -41,7 +41,7 @@ class UnitCounter:
 			'RoachBurrowed': 125,
 			'Infestor': 400,
 			'Queen': 150,
-			'Overseer': 0.001,
+			'Overseer': 0,
 			'Ravager': 300,
 #			'Lurker': 450,
 			'LurkerMP': 450,
@@ -53,7 +53,7 @@ class UnitCounter:
 			'SpineCrawlerUprooted': 100,
 			'SporeCrawler': 75,
 			'SporeCrawlerUprooted': 75,
-			'OverlordTransport': 0.001,
+			'OverlordTransport': 0,
 			'InfestorTerran': 5,
 			'ChangelingZealot': 5,
 			'InfestedTerransEgg': 5,
@@ -74,8 +74,8 @@ class UnitCounter:
 			'Adept': 150,
 			'Sentry': 120,
 			'Immortal': 475,
-			'WarpPrism': 0.001,
-			'WarpPrismPhasing': 0.001,
+			'WarpPrism': 0,
+			'WarpPrismPhasing': 0,
 			'VoidRay': 550,
 			'Phoenix': 350,
 			'Colossus': 700,
@@ -83,7 +83,7 @@ class UnitCounter:
 			'HighTemplar': 350,
 			'Disruptor': 450, 
 			'DarkTemplar': 375,
-			'Observer': 0.001,
+			'Observer': 0,
 			'Archon': 700,
 			'PhotonCannon': 150,
 			'Oracle': 450,
@@ -91,7 +91,7 @@ class UnitCounter:
 			'Mothership': 1200,
 			
 			#terran
-			'CommandCenter': 0.001,
+			'CommandCenter': 0,
 			'Bunker': 350,
 			'PlanetaryFortress': 850,
 			'Marine': 50,
