@@ -3,11 +3,10 @@ import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.constants import *
 '''
-This class carried out build orders previously, variables left in case for now.
+This class carried out build orders previously, variables are still used.
 
 '''
 
-_print_unit_training = False
 
 class Trainer:
 
@@ -27,7 +26,4 @@ class Trainer:
 		self.allow_disruptors = False
 		self.allow_carriers = False
 		self.allow_mothership = False
-	
-	async def train_all(self, game):
-		self.game = game
 
