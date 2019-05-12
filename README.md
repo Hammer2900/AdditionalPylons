@@ -7,7 +7,8 @@ Currently competes on the [Starcraft 2 AI ladder](http://sc2ai.net/)
 * Python3.7
 * [python-sc2](https://github.com/Dentosal/python-sc2) - SC2 API
 
-##additionalpylons.py Settings
+## additionalpylons.py Settings
+
 ###### \_debug
 Setting this to true is required for any debugging to show up.   If set to False, all other debug settings should also be set to False, as they will eat up extra resources when true.
 
