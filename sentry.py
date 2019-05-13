@@ -266,7 +266,7 @@ class Sentry:
 
 	def needShield(self):
 		#if an enemy has us in range, then activate shield if possible.
-		if self.closestEnemies.filter(lambda x: x.ground_range > 2 and not x.name in ['SCV', 'Probe', 'Drone', 'Broodling'] and x.distance_to(self.unit) < 6).amount >= 1:
+		if self.closestEnemies.filter(lambda x: x.ground_range > 2 and not x.name in ['SCV', 'Probe', 'Drone', 'Broodling'] and x.distance_to(self.unit) < 8).amount >= 1:
 			if self.game.unitList.shieldSafe(self):
 				if self.activateShield():
 					self.last_action = 'Shield'

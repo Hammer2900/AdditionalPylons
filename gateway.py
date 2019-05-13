@@ -122,6 +122,11 @@ class Gateway:
 			#make sure we can actually build it and the core is finished.
 			if self.game.enemy_race == Race.Terran and trainee == 'Zealot' and not self.game.units(CYBERNETICSCORE).ready.exists:
 				return False #don't build zealots to start so we can get stalkers out sooner.
+			#don't build a sentry before other units.
+			
+			if self.game._strat_manager.army_power == 0 and trainee == 'Sentry':
+				return False
+			
 			if trainee != 'Zealot':
 				if not self.game.units(CYBERNETICSCORE).ready.exists:
 					return False
