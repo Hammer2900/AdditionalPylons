@@ -29,7 +29,7 @@ class UnitCounter:
 		#current power based on = Min costs + (Gas Costs * 2)
 		self.unitPower = {
 			#zerg
-			'Overlord': 0,
+			'Overlord': 0.001,
 			'Baneling': 100,
 			'Zergling': 25,
 			'ZerglingBurrowed': 25,
@@ -41,7 +41,7 @@ class UnitCounter:
 			'RoachBurrowed': 125,
 			'Infestor': 400,
 			'Queen': 150,
-			'Overseer': 0,
+			'Overseer': 0.001,
 			'Ravager': 300,
 #			'Lurker': 450,
 			'LurkerMP': 450,
@@ -53,19 +53,19 @@ class UnitCounter:
 			'SpineCrawlerUprooted': 100,
 			'SporeCrawler': 75,
 			'SporeCrawlerUprooted': 75,
-			'OverlordTransport': 0,
+			'OverlordTransport': 0.001,
 			'InfestorTerran': 5,
 			'ChangelingZealot': 5,
 			'InfestedTerransEgg': 5,
 			'Broodling': 4,
 			'Drone': 50,
-			'Extractor': 0,
-			'Hatchery': 0,
-			'Egg': 0,
-			'Larva': 0,
-			'CreepTumor': 0,
-			'CreepTumorBurrowed': 0,
-			'SCV': 0,
+			'Extractor': 0.001,
+			'Hatchery': 0.001,
+			'Egg': 0.001,
+			'Larva': 0.001,
+			'CreepTumor': 0.001,
+			'CreepTumorBurrowed': 0.001,
+			'SCV': 0.001,
 
 			
 			#protoss
@@ -74,8 +74,8 @@ class UnitCounter:
 			'Adept': 150,
 			'Sentry': 120,
 			'Immortal': 475,
-			'WarpPrism': 0,
-			'WarpPrismPhasing': 0,
+			'WarpPrism': 0.001,
+			'WarpPrismPhasing': 0.001,
 			'VoidRay': 550,
 			'Phoenix': 350,
 			'Colossus': 700,
@@ -83,15 +83,15 @@ class UnitCounter:
 			'HighTemplar': 350,
 			'Disruptor': 450, 
 			'DarkTemplar': 375,
-			'Observer': 0,
+			'Observer': 0.001,
 			'Archon': 700,
 			'PhotonCannon': 150,
 			'Oracle': 450,
 			'Carrier': 850,
 			'Mothership': 1200,
-			
+						
 			#terran
-			'CommandCenter': 0,
+			'CommandCenter': 0.001,
 			'Bunker': 350,
 			'PlanetaryFortress': 850,
 			'Marine': 50,
@@ -117,7 +117,7 @@ class UnitCounter:
 			'Battlecruiser': 1000,
 			'MissileTurret': 100,
 			'AutoTurret': 5,
-			'KD8Charge': 0,
+			'KD8Charge': 0.001,
 
 		}
 		
@@ -262,7 +262,7 @@ class UnitCounter:
 				[['Stalker', 0.75]],
 				],
 			'VoidRay': [
-				[['Phoenix', 1]],
+				[['VoidRay', 1]],
 				[['Stalker', 2]],
 				],
 			'Oracle': [
