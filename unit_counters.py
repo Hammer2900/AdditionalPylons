@@ -262,7 +262,7 @@ class UnitCounter:
 				[['Stalker', 0.75]],
 				],
 			'VoidRay': [
-				[['Phoenix', 1]],
+				[['VoidRay', 1]],
 				[['Stalker', 2]],
 				],
 			'Oracle': [

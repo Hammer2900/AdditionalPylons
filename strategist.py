@@ -1717,9 +1717,8 @@ class Strategist:
 		
 		if len(counters) == 0:
 			counters.update({'Zealot':1})
-#			counters.update({'Phoenix':1})
-#		if len(counters) == 0 and self.game.units(ZEALOT).ready.amount > 5:
-#			counters.update({'Stalker':2})
+		if len(counters) == 0 and self.game.units(ZEALOT).ready.amount > 0:
+			counters.update({'Stalker':2})
 #		if len(counters) == 0 and self.game.units(STALKER).ready.amount > 5:
 #			counters.update({'VoidRay':2})
 	
