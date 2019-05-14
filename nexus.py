@@ -236,6 +236,9 @@ class Nexus:
 		if self.game.units(PROBE).amount < 5 and self.game.cached_enemies.closer_than(20, self.unit).amount > 5:
 			return False #wait until things clear hopefully.
 		
+		if self.game.cached_enemies(PHOTONCANNON).closer_than(10, self.unit).amount > 0:
+			return False #wait until cannon is cleared.
+		
 		
 		#check to see if workers are needed.
 		if self.game.buildingList.workersRequested:
