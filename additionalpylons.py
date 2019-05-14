@@ -1017,9 +1017,9 @@ class MyBot(sc2.BotAI):
 			if len(allPylons) == 1:
 				#single pylon building, add to the pylon score.
 				if building.name == 'PhotonCannon':
-					score += 15
+					score += 25
 				else:
-					score += 5
+					score += 15
 		return score
 
 	def findBestMoveTarget(self, unit_obj):
