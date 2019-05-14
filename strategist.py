@@ -1713,14 +1713,31 @@ class Strategist:
 			
 		#basic building if we have nothing in our list.
 		if len(possible_counters) == 0:
-			possible_counters.update({'Zealot':1})		
-		
+			if self.game.enemy_race == Race.Protoss:
+				if self.game.units(ZEALOT).amount > 0:
+					possible_counters.update({'Stalker':2})
+				else:
+					possible_counters.update({'Zealot':1})
+			elif self.game.enemy_race == Race.Terran:
+				possible_counters.update({'Stalker':1})
+			elif self.game.enemy_race == Race.Zerg:
+				possible_counters.update({'Zealot':1})
+			else:
+				possible_counters.update({'Zealot':1})
+				
+
 		if len(counters) == 0:
-			counters.update({'Zealot':1})
-		if len(counters) == 0 and self.game.units(ZEALOT).ready.amount > 0:
-			counters.update({'Stalker':2})
-#		if len(counters) == 0 and self.game.units(STALKER).ready.amount > 5:
-#			counters.update({'VoidRay':2})
+			if self.game.enemy_race == Race.Protoss:
+				if self.game.units(ZEALOT).amount > 0:
+					counters.update({'Stalker':2})
+				else:
+					counters.update({'Zealot':1})
+			elif self.game.enemy_race == Race.Terran:
+				counters.update({'Stalker':1})
+			elif self.game.enemy_race == Race.Zerg:
+				counters.update({'Zealot':1})
+			else:
+				counters.update({'Zealot':1})
 	
 		self.raw_all_counters = dict(counters)
 		self.enemy_power = enemy_power
@@ -1898,7 +1915,8 @@ class Strategist:
 					#clear units from unitTimes
 					for tag in removed:
 						self.remove_timed(tag)
-		
+
+
 		
 	def assign_nexus_builder(self, direct=False):
 		if not self.game.expPos:
