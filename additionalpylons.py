@@ -27,6 +27,8 @@ from strategist import Strategist as stratControl
 from trainingdata import TrainingData as trainingData
 from protoss_agent import ProtossAgent as protossAgent
 
+
+_version = 'v1.513'
 _debug = False
 _debug_economy = False
 _debug_positions = False
@@ -36,11 +38,13 @@ _debug_effects = False
 _debug_combat = False
 _local_ladder = True
 _use_data = False
-_version = 'v1.511b'
-_exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 _test_strat_id = 0 #0 = turned off
+_zerg_race_strat_id = 2
+_protoss_race_strat_id = 3
+_terran_race_strat_id = 3
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
+_exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 
 class MyBot(sc2.BotAI):
 	def __init__(self):
@@ -1707,18 +1711,19 @@ class MyBot(sc2.BotAI):
 		if not _use_data:
 			#select starting strat by race.
 			if self.enemy_race == Race.Zerg:
-				self._strat_manager.strat_id = 4
+				self._strat_manager.strat_id = _zerg_race_strat_id
 				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			elif self.enemy_race == Race.Protoss:
-				self._strat_manager.strat_id = 3
+				self._strat_manager.strat_id = _protoss_race_strat_id
 				self._strat_manager.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', 'RoboticsFacility']
 			elif self.enemy_race == Race.Terran:
-				self._strat_manager.strat_id = 5
+				self._strat_manager.strat_id = _terran_race_strat_id
 				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			else:
 				self._strat_manager.strat_id = 1
 				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			print ('using race strat:', self._strat_manager.strat_id)
+			self.intro_value = "(glhf) {version}:{strat_id}".format(version=_version, strat_id=self._strat_manager.strat_id)
 
 
 		else:
