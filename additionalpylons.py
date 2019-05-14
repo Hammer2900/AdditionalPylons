@@ -1010,15 +1010,16 @@ class MyBot(sc2.BotAI):
 	def scorePylon(self, pylon, unit_obj):
 		#loop the buildings around and see if they are powered by more than 1 pylon.
 		score = 0
-		if len(self.cached_enemies.of_type([GATEWAY,WARPGATE,STARGATE,ROBOTICSFACILITY,PHOTONCANNON])) > 0:
-			for building in self.cached_enemies.of_type([GATEWAY,WARPGATE,STARGATE,ROBOTICSFACILITY,PHOTONCANNON]).closer_than(6.5, pylon.position):
-				allPylons = self.cached_enemies.of_type([PYLON]).closer_than(6.5, building.position)
-				if len(allPylons) == 1:
-					#single pylon building, add to the pylon score.
-					if building.name == 'PhotonCannon':
-						score += 15
-					else:
-						score += 5
+		important_buildings = {GATEWAY,WARPGATE,STARGATE,ROBOTICSFACILITY,PHOTONCANNON}
+		cached_buildings = self.cached_enemies.filter(lambda building: building.type_id in important_buildings and building.distance_to(pylon) < 6.5)
+		for building in cached_buildings:
+			allPylons = self.cached_enemies.filter(lambda other_pylon: other_pylon.type_id == PYLON and other_pylon.distance_to(building) < 6.5)
+			if len(allPylons) == 1:
+				#single pylon building, add to the pylon score.
+				if building.name == 'PhotonCannon':
+					score += 15
+				else:
+					score += 5
 		return score
 
 	def findBestMoveTarget(self, unit_obj):

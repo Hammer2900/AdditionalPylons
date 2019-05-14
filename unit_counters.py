@@ -278,7 +278,9 @@ class UnitCounter:
 				],
 			'Colossus': [
 				[['Immortal', 1], ['Phoenix', 2]],
-				[['Stalker', 6],['Zealot', 5]],
+				[['Stalker', 2], ['Immortal', 1]],
+				[['Stalker', 2], ['Zealot', 2], ['Phoenix', 2]],
+				[['Stalker', 6], ['Zealot', 5]],
 				[['Zealot', 12]],
 				],
 			'Tempest': [
