@@ -576,7 +576,15 @@ class UnitCounter:
 			4 : 'two bases rush defense',	
 			5 : '3 greedy bases',
 		}
-
+		
+		self.cannon_rush = [
+			"Excuse me sir, it seems you've misplaced some buildings.",
+			"Siege Detected, moving to gamestate mode.",
+		]
+			
+	def cannonRushSaying(self):
+		return random.choice(self.cannon_rush)
+		
 
 	def getIntroDescription(self, intro_id):
 		return self.intro_descriptions.get(intro_id)

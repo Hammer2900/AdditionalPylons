@@ -67,8 +67,23 @@ class Nexus:
 
 
 	async def runList(self):
-		#see if we can chronoboost anything.
-
+		
+		#if we are still warping in.
+		if not self.unit.is_ready:
+			#check for cannons near by and cancel as late as possible if true.
+			if self.game.cached_enemies.filter(lambda x: x.type_id in {PHOTONCANNON} and x.distance_to(self.unit) < 9):
+				#cannon has been found, leave opening stage.
+				if not self.game._strat_manager.stage1complete:
+					self.game._strat_manager.build.can_build_pylons = True
+					self.game._strat_manager.build.can_build_assimilators = True
+					self.game._strat_manager.stage1complete = True
+					await self.game._client.chat_send(self.unitCounter.cannonRushSaying(), team_only=False)
+				#wait until we are at least 95% finished, then cancel ourselves.
+				if self.unit.build_progress >= 0.98:
+					self.game.combinedActions.append(self.unit(CANCEL))
+			return #warping in		
+		
+		
 		self.checkUnderAttack()
 		#check to see if we need workers
 		self.checkNeedWorkers()
@@ -412,6 +427,10 @@ class Nexus:
 			self.p6 = self.unit.position.towards(self.midpoint(self.p1, self.p3), 9)			
 
 	def communicateNeeds(self):
+		#if we are warping in, we don't need anything.
+		if not self.unit.is_ready:
+			return False
+
 		#check the pylons and see if we need any.
 		#by default build pylon 1, then 3, then 4.
 		#build pylon 2 if cheese is detected.

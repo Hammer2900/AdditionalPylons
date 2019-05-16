@@ -28,7 +28,7 @@ from trainingdata import TrainingData as trainingData
 from protoss_agent import ProtossAgent as protossAgent
 
 
-_version = 'v1.513'
+_version = 'v1.515'
 _debug = False
 _debug_economy = False
 _debug_positions = False
@@ -245,6 +245,7 @@ class MyBot(sc2.BotAI):
 			self.getDefensivePoint()
 			await self.getRallyPoint()
 			self.expPos = await self.get_next_expansion()
+			self.buildingList.load_object(unit)
 		#detect nexus on start
 		if self.last_iter < 3:
 			self.buildingList.load_object(unit)
@@ -1304,12 +1305,13 @@ class MyBot(sc2.BotAI):
 		# enemy_total = (x.ground_range + x.radius + unit_obj.unit.radius)
 		# unit_total = x.radius + unit_obj.unit.radius
 		# 	(x.ground_range + x.radius +  < unit_range and x.air_range < unit_range)
-
-		# if unit_obj.unit.name == 'Colossus':
-		# 	#any enemy that can attack ground or air.
-		# 	enemyThreats = kitables.closer_than(9 + bonus_range, unit_obj.unit).sorted(lambda x: x.distance_to(unit_obj.unit))
-		# 	if enemyThreats:
-		# 		return enemyThreats[0]
+		if unit_obj.unit.name in {'Colossus','Mothership'}:
+			#run from ravens.
+			enemyThreats = kitables.filter(lambda x: x.name == 'Raven'
+										   and x.distance_to(unit_obj.unit) < (unit_obj.unit.radius + x.radius + 9)
+										   ).sorted(lambda x: x.distance_to(unit_obj.unit))
+			if enemyThreats:
+				return enemyThreats[0]
 
 		#stay out of enemy range.
 		if unit_obj.unit.can_attack_air:

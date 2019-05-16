@@ -12,7 +12,7 @@ unit.name = DisruptorPhased
 Searches for the most enemies to damage.
 '''
 
-_debug = False
+_debug = True
 
 class DisruptorPhased:
 

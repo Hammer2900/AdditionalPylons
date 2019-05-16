@@ -22,7 +22,7 @@ _realtime = False
 
 _difficulty = Difficulty.CheatInsane #CheatInsane, CheatMoney, CheatVision
 _opponent = random.choice([Race.Zerg, Race.Terran, Race.Protoss, Race.Random])
-_opponent = Race.Zerg
+_opponent = Race.Terran
 
 # Start game
 if __name__ == '__main__':
