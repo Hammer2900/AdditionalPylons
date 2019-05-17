@@ -24,7 +24,7 @@ Weak against:
     Missile Turret
     Spore Crawler
 '''
-_debug = True
+_debug = False
 
 class Observer:
 

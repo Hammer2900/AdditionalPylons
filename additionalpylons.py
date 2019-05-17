@@ -28,7 +28,7 @@ from trainingdata import TrainingData as trainingData
 from protoss_agent import ProtossAgent as protossAgent
 
 
-_version = 'v1.515'
+_version = 'v1.516'
 _debug = False
 _debug_economy = False
 _debug_positions = False
@@ -1017,7 +1017,10 @@ class MyBot(sc2.BotAI):
 			allPylons = self.cached_enemies.filter(lambda other_pylon: other_pylon.type_id == PYLON and other_pylon.distance_to(building) < 6.5)
 			if len(allPylons) == 1:
 				#single pylon building, add to the pylon score.
-				if building.name == 'PhotonCannon':
+				if building.name == 'ShieldBattery':
+					print ('shield found')
+					score += 100
+				elif building.name == 'PhotonCannon':
 					score += 25
 				else:
 					score += 15
@@ -1818,14 +1821,14 @@ class MyBot(sc2.BotAI):
 			self.trackLurkers()
 
 		if len(self.units(DISRUPTORPHASED)) > 0:
-			#get their target position, not their position.
+			#get their target position and their position
 			targets = self.unitList.phaseTargets()
 			for position in targets:
 				if position:
 					self.dodge_positions.append([position, 2])
 
-			#for unit in self.units(DISRUPTORPHASED):
-			#	self.dodge_positions.append([unit.position, 2])
+			for unit in self.units(DISRUPTORPHASED):
+				self.dodge_positions.append([unit.position, 2])
 
 		if len(self.cached_enemies.of_type([DISRUPTORPHASED,BANELING])) > 0:
 			for unit in self.cached_enemies.of_type([DISRUPTORPHASED,BANELING]):

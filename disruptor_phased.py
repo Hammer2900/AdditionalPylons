@@ -12,7 +12,7 @@ unit.name = DisruptorPhased
 Searches for the most enemies to damage.
 '''
 
-_debug = True
+_debug = False
 
 class DisruptorPhased:
 
@@ -60,6 +60,8 @@ class DisruptorPhased:
 			if self.last_target:
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
 				self.game._client.debug_line_out(spos, self.last_target, color=Point3((155, 255, 25)))
+				self.game._client.debug_sphere_out(self.game.turn3d(self.last_target), 1.5, Point3((155, 255, 25)))
+				self.game._client.debug_text_3d('TARGET LOC', self.game.turn3d(self.last_target))
 			self.game._client.debug_text_3d(self.label, self.unit.position3d)	
 	
 	
@@ -102,7 +104,8 @@ class DisruptorPhased:
 
 
 	def moveToEnemies(self):
-		mRange = ((self.unit.movement_speed * 2) * self.life_left) + 1.5 #1.5 is radius of explosion
+		mRange = ((self.unit.movement_speed * 2) * self.life_left) #1.5 is radius of explosion
+		#print (self.life_left, mRange)
 		#find target
 		#check to see if there is a burrowed widowmine near us, if so lets kill it.
 		closestDistance = 10000
@@ -152,7 +155,9 @@ class DisruptorPhased:
 		if our_target:
 			self.targetPosition = our_target.position
 			if _debug:
-				self.last_target = Point3((our_target.position3d.x, our_target.position3d.y, (our_target.position3d.z + 1)))
+				self.last_target = our_target
+				
+			# 	self.last_target = Point3((our_target.position3d.x, our_target.position3d.y, (our_target.position3d.z + 1)))
 			if self.checkNewAction('move', our_target.position[0], our_target.position[1]):
 				self.game.combinedActions.append(self.unit.move(our_target))
 			return True
