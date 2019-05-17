@@ -157,8 +157,6 @@ class MyBot(sc2.BotAI):
 		if iteration == 0:
 			self.loadStart()
 
-
-
 		self.can_spend = True
 		#if iteration % 6 == 0:
 		if self.time > self._next_economic_update:

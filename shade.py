@@ -95,8 +95,10 @@ class Shade:
 
 
 	def find_owner(self):
-		owner = self.game.units(ADEPT).closest_to(self.unit)
-		return owner
+		if len(self.game.units(ADEPT)) > 0:
+			owner = self.game.units(ADEPT).closest_to(self.unit)
+			return owner
+		return None
 		
 
 	def psionicCancel(self):

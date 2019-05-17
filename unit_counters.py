@@ -240,8 +240,8 @@ class UnitCounter:
 				[['Zealot', 1]],
 				],
 			'Stalker': [
-				[['Immortal', 0.25], ['Stalker', 0.5], ['Sentry', 0.05]],
-				[['Stalker', 1], ['Sentry', 0.05]],
+				[['Immortal', 0.25], ['Stalker', 0.5]],
+				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
 			'Adept': [
