@@ -39,9 +39,9 @@ _debug_combat = False
 _local_ladder = True
 _use_data = False
 _test_strat_id = 0 #0 = turned off
-_zerg_race_strat_id = 4
-_protoss_race_strat_id = 4
-_terran_race_strat_id = 4
+_zerg_race_strat_id = 1
+_protoss_race_strat_id = 1
+_terran_race_strat_id = 1
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
