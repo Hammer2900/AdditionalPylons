@@ -296,7 +296,7 @@ class Probe:
 		#print (str(self.unit.orders).lower())
 		self.enemyWorkers = self.game.getUnitEnemies(self, radius=6)
 		#check for a worker rush incoming, if so, move back to base.
-		if len(self.closestEnemies.of_type([PROBE,SCV,DRONE])) > 2:
+		if len(self.enemyWorkers.of_type([PROBE,SCV,DRONE])) > 2:
 			#go back to work.
 			self.game.unitList.freeNexusBuilders()
 			self.label = 'Incoming Rush'

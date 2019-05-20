@@ -43,7 +43,6 @@ class UnitCounter:
 			'Queen': 150,
 			'Overseer': 0.001,
 			'Ravager': 300,
-#			'Lurker': 450,
 			'LurkerMP': 450,
 			'LurkerMPBurrowed': 450,
 			'Corruptor': 350,
@@ -65,7 +64,6 @@ class UnitCounter:
 			'Larva': 0.001,
 			'CreepTumor': 0.001,
 			'CreepTumorBurrowed': 0.001,
-			'SCV': 0.001,
 
 			
 			#protoss
@@ -89,6 +87,7 @@ class UnitCounter:
 			'Oracle': 450,
 			'Carrier': 850,
 			'Mothership': 1200,
+			'Probe': 0.001,
 						
 			#terran
 			'CommandCenter': 0.001,
@@ -118,6 +117,7 @@ class UnitCounter:
 			'MissileTurret': 100,
 			'AutoTurret': 5,
 			'KD8Charge': 0.001,
+			'SCV': 0.001,
 
 		}
 		

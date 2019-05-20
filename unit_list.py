@@ -134,6 +134,15 @@ class UnitList():
 			targets.append(phase.currentTarget)
 		return targets
 
+
+	def unitHomeTarget(self, ownerUnit):
+		#get the object by the unit_tag.
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.homeTarget
+		return None
+
+
 	def adeptOrder(self, ownerUnit):
 		#get the object by the unit_tag.
 		if self.unit_objects.get(ownerUnit.tag):

@@ -110,9 +110,13 @@ class Adept:
 		
 		#check if we need to come home and defend.
 		self.comeHome = self.game.checkHome(self)			
-				
+		
+
 
 		self.closestEnemies = self.game.getUnitEnemies(self)
+		#get the order for our shade
+		self.ownerOrder()		
+		
 		if self.closestEnemies.amount > 0:
 			
 			#check if we are surrounded
@@ -199,6 +203,39 @@ class Adept:
 		return False
 
 
+	def workerSearch(self) -> bool:
+		if self.game.defend_only or self.game.under_attack:
+			return False
+		townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND}
+											   and x.distance_to(self.unit) > 7)
+		if len(townhalls) > 0:
+			return True
+		return False
+
+		
+		
+
+	def ownerOrder(self):
+		#list of things we could tell our shade to do.
+		#if surrounded by enemies, shade should find a safe place to move too.
+		if len(self.closestEnemies) > 0 and self.game.checkSurrounded(self):
+			self.shadeOrder = 'Surrounded'
+		#if we are near an enemy base, try to get near workers to kill them.
+		elif self.workerSearch():
+			self.shadeOrder = 'WorkerSearch'
+		#if we are being told to come home, then shade should head towards the defensive point.
+		elif self.comeHome:
+			self.shadeOrder = 'ComeHome'		
+		#check general retreat.
+		elif self.game.defend_only and not self.game.under_attack and self.unit.distance_to(self.game.defensive_pos) > 5:
+			self.shadeOrder = 'GoDefensivePoint'
+		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.   
+		#if we are defending, shade should go behind the lines in case the enemy tries to retreat and we want to port to them.
+		#if we are scouting, have the shade go into the base and search around.
+		else:
+			self.shadeOrder = 'WorkerSearch'
+
+
 	def getTargetBonus(self, targetName):
 		if self.enemy_target_bonuses.get(targetName):
 			return self.enemy_target_bonuses.get(targetName)
@@ -212,16 +249,6 @@ class Adept:
 		self.last_action = actionStr
 		return True
 	
-	def ownerOrder(self):
-		#list of things we could tell our shade to do.
-		#if surrounded by enemies, shade should find a safe place to move too.
-		#if we are near an enemy base, try to get near workers to kill them.
-		#if we are retreating, then shade should head towards the defensive point.
-		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.   
-		#if we are defending, shade should go behind the lines in case the enemy tries to retreat and we want to port to them.
-		#if we are scouting, have the shade go into the base and search around.
-		pass
-
 	@property
 	def position(self) -> Point2:
 		return self.saved_position
