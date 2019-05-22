@@ -28,7 +28,7 @@ from trainingdata import TrainingData as trainingData
 from protoss_agent import ProtossAgent as protossAgent
 
 
-_version = 'v1.519'
+_version = 'v1.521'
 _debug = False
 _debug_economy = False
 _debug_positions = False
@@ -965,11 +965,11 @@ class MyBot(sc2.BotAI):
 				#going less than -400 can result in positive points, might mess things up, but might be good to finish off a pylon - test later.
 				score = self.scorePylon(enemy, unit_obj)
 				if score == 0:
-					score = (hp_lost - 450)
+					score = (hp_lost - (enemy.health_max + enemy.shield_max))
 			elif enemy.name == 'Bunker':
 				score = 0
 			else:
-				score = (hp_lost - 1000)
+				score = (hp_lost - (enemy.health_max + enemy.shield_max))
 
 		#distance to enemy matters.  Use % of max range distance, then subtract it from 100.
 		dist = 0
