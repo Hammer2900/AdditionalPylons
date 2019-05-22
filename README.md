@@ -7,8 +7,9 @@ Currently competes on the [Starcraft 2 AI ladder](http://sc2ai.net/)
 * Python3.7
 * [python-sc2](https://github.com/Dentosal/python-sc2) - SC2 API
 
-## additionalpylons.py Settings
+## config.ini Settings
 
+####[Debug]
 ###### \_debug
 Setting this to true is required for any debugging to show up.   If set to False, all other debug settings should also be set to False, as they will eat up extra resources when true.
 
@@ -33,6 +34,7 @@ Draws lines to see what the units are targeting, as well as giving their current
 ###### \_local_ladder
 Prints opp_id to stdout at the start of the match.  Can be used to debug other prints following, but won't be useful in most cases. 
 
+####[Strategy]
 ###### \_use_data
 Determines if the bot saves opponent data to learn the best strategy and preseed intel.
 

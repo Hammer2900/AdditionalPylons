@@ -9,6 +9,7 @@ from sc2.unit import Unit
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 import random
+import configparser
 from math import sqrt, sin, cos, ceil
 from operator import itemgetter
 import datetime
@@ -29,22 +30,26 @@ from protoss_agent import ProtossAgent as protossAgent
 
 
 _version = 'v1.521'
-_debug = False
-_debug_economy = False
-_debug_positions = False
-_debug_score = False
-_debug_counters = False
-_debug_effects = False
-_debug_combat = False
-_local_ladder = False
-_use_data = False
-_test_strat_id = 0 #0 = turned off
-_zerg_race_strat_id = 4
-_protoss_race_strat_id = 3
-_terran_race_strat_id = 3
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
+
+#load up configuration from the config file.
+_ini_parse = configparser.ConfigParser()
+_ini_parse.read('config.ini')
+_debug = _ini_parse['Debug'].getboolean('_debug')
+_debug_economy = _ini_parse['Debug'].getboolean('_debug_economy')
+_debug_positions = _ini_parse['Debug'].getboolean('_debug_positions')
+_debug_score = _ini_parse['Debug'].getboolean('_debug_score')
+_debug_counters = _ini_parse['Debug'].getboolean('_debug_counters')
+_debug_effects = _ini_parse['Debug'].getboolean('_debug_effects')
+_debug_combat = _ini_parse['Debug'].getboolean('_debug_combat')
+_local_ladder = _ini_parse['Debug'].getboolean('_local_ladder')
+_use_data = _ini_parse['Strategy'].getboolean('_use_data')
+_test_strat_id = _ini_parse['Strategy']['_test_strat_id']
+_zerg_race_strat_id = _ini_parse['Strategy']['_zerg_race_strat_id']
+_protoss_race_strat_id = _ini_parse['Strategy']['_protoss_race_strat_id']
+_terran_race_strat_id = _ini_parse['Strategy']['_terran_race_strat_id']
 
 class MyBot(sc2.BotAI):
 	def __init__(self):
@@ -190,6 +195,7 @@ class MyBot(sc2.BotAI):
 		self.cancelBuildings()
 
 		if _debug:
+			print ('debug on?', _debug)
 			if _debug_counters:
 				self._strat_manager.debug_full_counters()
 			if _debug_positions:
