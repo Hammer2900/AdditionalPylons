@@ -46,10 +46,10 @@ _debug_effects = _ini_parse['Debug'].getboolean('_debug_effects')
 _debug_combat = _ini_parse['Debug'].getboolean('_debug_combat')
 _local_ladder = _ini_parse['Debug'].getboolean('_local_ladder')
 _use_data = _ini_parse['Strategy'].getboolean('_use_data')
-_test_strat_id = _ini_parse['Strategy']['_test_strat_id']
-_zerg_race_strat_id = _ini_parse['Strategy']['_zerg_race_strat_id']
-_protoss_race_strat_id = _ini_parse['Strategy']['_protoss_race_strat_id']
-_terran_race_strat_id = _ini_parse['Strategy']['_terran_race_strat_id']
+_test_strat_id = int(_ini_parse['Strategy']['_test_strat_id'])
+_zerg_race_strat_id = int(_ini_parse['Strategy']['_zerg_race_strat_id'])
+_protoss_race_strat_id = int(_ini_parse['Strategy']['_protoss_race_strat_id'])
+_terran_race_strat_id = int(_ini_parse['Strategy']['_terran_race_strat_id'])
 
 class MyBot(sc2.BotAI):
 	def __init__(self):
