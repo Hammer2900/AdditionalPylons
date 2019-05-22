@@ -36,7 +36,7 @@ _debug_score = False
 _debug_counters = False
 _debug_effects = False
 _debug_combat = False
-_local_ladder = True
+_local_ladder = False
 _use_data = False
 _test_strat_id = 0 #0 = turned off
 _zerg_race_strat_id = 4
@@ -983,6 +983,9 @@ class MyBot(sc2.BotAI):
 				score = score * dist
 			else:
 				score = score / dist
+		
+		if self.checkStolenUnit(enemy):
+			score = -100000 #stolen unit, do not attack.
 
 		#debug if the unit is selected.
 		if _debug and _debug_score and unit_obj.unit.is_selected:
@@ -991,6 +994,15 @@ class MyBot(sc2.BotAI):
 			time.sleep(0.1)
 		return score
 
+
+	def checkStolenUnit(self, enemy) -> bool:
+		if self.enemy_race != Race.Zerg:
+			return False
+		possibles = {MOTHERSHIP, COLOSSUS, ZEALOT, STALKER, HIGHTEMPLAR, DARKTEMPLAR, SENTRY, PHOENIX, CARRIER, VOIDRAY, WARPPRISM, OBSERVER, IMMORTAL, ADEPT, ORACLE, TEMPEST, DISRUPTOR, ARCHON, PHOTONCANNON}
+		if enemy.type_id in possibles:
+			return True
+		return False
+		
 
 	def checkSCVHealer(self, scv) -> bool:
 		#find the postion 1d ahead of scv.
@@ -1256,7 +1268,6 @@ class MyBot(sc2.BotAI):
 			retreatPoint = enemy.position.furthest(goodPoints)
 			return retreatPoint
 
-
 	def findBestKiteTargetFurthestEnemy(self, targetpoint, enemy):
 		#build a grid around the targetpoint and select the highest value point.
 		fullRetreatPoints = self.retreatGrid(targetpoint, size=1)
@@ -1269,9 +1280,6 @@ class MyBot(sc2.BotAI):
 		retreatPoint = self.findBestPoint(fullRetreatPoints, enemy)
 		if retreatPoint:
 			return retreatPoint
-
-
-
 
 	def findBestPointFurthestEnemy(self, points, enemy):
 		goodPoints = []

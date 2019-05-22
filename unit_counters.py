@@ -64,8 +64,7 @@ class UnitCounter:
 			'Larva': 0.001,
 			'CreepTumor': 0.001,
 			'CreepTumorBurrowed': 0.001,
-
-			
+		
 			#protoss
 			'Zealot': 100,
 			'Stalker': 225,
@@ -105,6 +104,7 @@ class UnitCounter:
 			'SiegeTank': 400,
 			'SiegeTankSieged': 400,
 			'Thor': 700,
+			'ThorAP': 700,
 			'Viking': 300,
 			'VikingFighter': 300,
 			'VikingAssault': 300,
@@ -145,7 +145,7 @@ class UnitCounter:
 				[['Zealot', 0.01]],
 			],					
 			'Overlord': [
-				[['Sentry', 0.01]]
+				[['Stalker', 0.01]]
 				],
 			'OverlordTransport': [
 				[['Phoenix', 1]]
@@ -385,6 +385,11 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Thor': [
+				[['Immortal', 1.5]],
+				[['Stalker', 2]],
+				[['Zealot', 4]],
+				],
+			'ThorAP': [
 				[['Immortal', 1.5]],
 				[['Stalker', 2]],
 				[['Zealot', 4]],

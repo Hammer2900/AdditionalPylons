@@ -158,10 +158,12 @@ class Gateway:
 				
 		#apparently couldn't build anything in the ideal list that is being allowed, check for anything to build.
 		#if minerals are backing up, then go ahead and build anything.
-		if self.game.minerals > 550:
+		if self.game.minerals > 550 and self.game.vespene > 550:
 			bestName = None
 			bestCount = -1		
 			for name, count in self.game._strat_manager.able_army.items():
+				if name == 'Sentry':
+					continue
 				#check if its one of our types.
 				if name in self.trainList:
 					#check if it's needed or not.
@@ -172,6 +174,9 @@ class Gateway:
 			if bestName:
 				self.label = "2nd {}".format(bestName)
 				return bestName
+		####at some point, lets just build zealots to fill supply.
+		if self.game.minerals > 2000 and self.game.vespene < 200:
+			return 'Zealot'
 			
 		self.label = 'Allowing resources elsewhere'
 		return None	
@@ -238,39 +243,7 @@ class Gateway:
 						#print ('defensive placement')
 						return placement
 		return None	
-	
-	
-	async def warpgate_placement_working(self, unit_ability):
-		#todo: first, check for a warp prism in pylon mode.
-		#second, check for proxy pylon.
-		startPos = random.choice(self.game.enemy_start_locations)
-		if not self.game.under_attack and not self.game.defend_only:
-			pylon = self.game.units(PYLON).ready.closest_to(startPos.position)
-			pos = pylon.position.to2.random_on_distance(4)
-			placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
-			if placement:
-				return placement
 		
-		#else warp them in near super pylons closest to enemies if around.		
-		if self.game.units(PYLON).ready.exists and self.game.units(NEXUS).exists:
-			#find the nexus we want to warp near.
-			nexus = None
-			if self.game.known_enemy_units.exists:
-				nexus = self.game.units(NEXUS).ready.closest_to(self.game.known_enemy_units.closest_to(self.game.start_location))
-			else:
-				nexus = self.game.units(NEXUS).ready.closest_to(random.choice(self.game.enemy_start_locations))
-			if nexus:
-				#find a super pylon near the nexus.
-				pylons = self.game.units(PYLON).ready.closer_than(6, nexus)
-				for pylon in pylons:
-					pos = pylon.position.to2.random_on_distance(4)
-					placement = await self.game.find_placement(unit_ability, pos, placement_step=1)
-					if placement:
-						return placement
-		return None		
-		
-
-	
 	@property
 	def inQueue(self) -> bool:
 		return self.queued

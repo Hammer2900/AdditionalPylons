@@ -190,8 +190,17 @@ class Builder:
 		return False
 	
 	def canBuildGateway(self):
+		#if we are heavy on minerals, allow multiple gateways to be built at once.
+		allowing = 1
+		if self.game.minerals > 1400:
+			#print ('allowing 3', self.gateways, (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount))
+			allowing = 3
+		elif self.game.minerals > 700:
+			#print ('allowing 2', self.gateways, (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount))
+			allowing = 2
+
 		if (self.game.units(GATEWAY).amount + self.game.units(WARPGATE).amount) < self.gateways:
-			if self.game.units(PYLON).exists and self.game.units(NEXUS).exists and self.game.can_afford(GATEWAY) and not self.game.already_pending(GATEWAY):
+			if self.game.units(PYLON).exists and self.game.units(NEXUS).exists and self.game.can_afford(GATEWAY) and self.game.already_pending(GATEWAY) < allowing:
 				return True
 	
 	def canBuildRobo(self):

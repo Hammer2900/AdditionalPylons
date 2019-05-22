@@ -272,7 +272,7 @@ class Sentry:
 					self.last_action = 'Shield'
 					return True	
 
-		if self.closestEnemies.filter(lambda x: x.is_flying and x.target_in_range(self.unit)).amount >= 1:
+		if self.closestEnemies.filter(lambda x: not x.name in ['Overlord'] and x.is_flying and x.target_in_range(self.unit)).amount >= 1:
 			if self.activateDecoy(AbilityId.HALLUCINATION_VOIDRAY):
 				self.last_action = 'Hall'
 				return True
@@ -287,7 +287,7 @@ class Sentry:
 				self.last_action = 'Hall'
 				return True
 		#check to see if it's a bunch of air units, if so fake voidray.
-		elif self.closestEnemies.filter(lambda x: x.is_flying and x.distance_to(self.unit) < 8).amount >= 4:
+		elif self.closestEnemies.filter(lambda x: not x.name in ['Overlord', 'Raven', 'WarpPrism', 'WarpPrismPhasing', 'Medivac'] and x.is_flying and x.distance_to(self.unit) < 8).amount >= 4:
 			if self.activateDecoy(AbilityId.HALLUCINATION_VOIDRAY):
 				self.last_action = 'Hall'
 				return True		
