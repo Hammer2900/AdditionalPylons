@@ -306,7 +306,7 @@ class Probe:
 		if self.game.expPos:
 			self.closestEnemies = self.game.cached_enemies.closer_than(4, self.game.expPos)
 		#self.closestEnemies = self.game.getUnitEnemies(self, radius=6)
-		if self.closestEnemies.amount > 0:
+		if self.closestEnemies:
 			#keep safe from effects
 			if self.game.effectSafe(self):
 				self.label = 'Dodging'

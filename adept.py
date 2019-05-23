@@ -264,14 +264,3 @@ class Adept:
 	@property
 	def sendHome(self) -> bool:
 		return self.comeHome
-		
-				
-			
-	
-		
-
-		
-		
-		
-		
-	
