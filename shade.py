@@ -205,7 +205,6 @@ class Shade:
 				dist = self.owner.distance_to(ownerTarget)
 				our_dist = self.unit.distance_to(ownerTarget)
 				if our_dist < dist:
-					print ('porting closer to target')
 					return False
 			
 			
