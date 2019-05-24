@@ -142,6 +142,13 @@ class UnitList():
 			return unit_obj.homeTarget
 		return None
 
+	def unitTarget(self, ownerUnit):
+		#get the object by the unit_tag.
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.last_target
+		return None
+	
 
 	def adeptOrder(self, ownerUnit):
 		#get the object by the unit_tag.

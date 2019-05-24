@@ -161,7 +161,6 @@ class Shade:
 			self.ownerOrder = 'Search' 
 		self.ownerOrder = self.game.unitList.adeptOrder(self.owner)
 
-
 	def find_owner(self):
 		if len(self.game.units(ADEPT)) > 0:
 			owner = self.game.units(ADEPT).closest_to(self.unit)
@@ -198,6 +197,19 @@ class Shade:
 			#check to make sure we are closer to the point than our owner.
 			if self.owner.distance_to(self.game.defensive_pos) > self.unit.distance_to(self.game.defensive_pos) and not self.game.checkSurrounded(self):
 				return False			
+		
+		#check if we are closer than the owners target, if so, do not cancel.
+		if self.owner:
+			ownerTarget = self.game.unitList.unitTarget(self.owner)
+			if ownerTarget:
+				dist = self.owner.distance_to(ownerTarget)
+				our_dist = self.unit.distance_to(ownerTarget)
+				if our_dist < dist:
+					print ('porting closer to target')
+					return False
+			
+			
+		
 		
 		if self.shade_start:
 			#cancel the shift.
