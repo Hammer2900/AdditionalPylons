@@ -116,7 +116,7 @@ class Sentry:
 				return #staying alive
 			
 			#3 priority is to keep our distance from enemies
-			if self.game.KeepKiteRange(self):
+			if self.game.KeepKiteRange(self, bonus_range=1.5):
 				self.label = 'Kiting'
 				return #kiting
 
