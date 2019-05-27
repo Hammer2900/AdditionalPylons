@@ -56,9 +56,9 @@ class Zealot:
 		self.comeHome = False
 		self.homeTarget = None
 		self.enemy_target_bonuses = {
-			'SCV': 100,
-			'Infestor': 300,
-			'WidowMine': 300,
+			'SCV': 10,
+			'Infestor': 30,
+			'WidowMine': 30,
 			'Immortal': 5,
 		}
 		

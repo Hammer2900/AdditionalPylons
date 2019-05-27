@@ -964,9 +964,8 @@ class MyBot(sc2.BotAI, effects_obj):
 		# if enemy.name == 'SCV' and self.defend_only:
 		# 	score -= 100
 		#don't target interceptors.
-		elif enemy.name == 'Interceptor':
+		if enemy.name == 'Interceptor':
 			score = 0
-
 		#start enemy structures that don't attack out with -1000 pts so they are always below units.
 		if score == 0 and enemy.is_structure:
 			#building, so lets just subtract the distance.

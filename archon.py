@@ -68,7 +68,7 @@ class Archon:
 			'Baneling': 10,
 			'Roach': 15,
 			'Hydralisk': 15,
-			'Infestor': 20,
+			'Infestor': 30,
 			'Ultralisk': 20,
 			'Overlord': -100,
 			'Overseer': 15,

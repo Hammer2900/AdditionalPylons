@@ -84,7 +84,7 @@ class VoidRay:
 			'Carrier': 5,
 			#Zerg
 			'Roach': 5,
-			'Infestor': 15,
+			'Infestor': 30,
 			'Ultralisk': 5,
 			'Overlord': -100, #no reason to attack them first.
 			'Overseer': 5,

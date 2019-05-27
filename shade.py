@@ -150,6 +150,16 @@ class Shade:
 					if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
 						self.game.combinedActions.append(self.unit.move(target_pos))
 					return True
+		elif self.ownerOrder == 'Battle' and len(self.closestEnemies) > 0:
+			#find the center of the enemies around the nearest.
+			#targets = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(self.owner) < 9)
+			targets = self.closestEnemies.filter(lambda x: x.can_attack_ground)
+			if targets:
+				center_enemies = targets.center
+				target_pos = self.owner.position.towards(center_enemies, -5)
+				if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
+					self.game.combinedActions.append(self.unit.move(target_pos))
+				return True			
 		#print ('no order able', self.ownerOrder)
 		return False	
 		
@@ -202,6 +212,15 @@ class Shade:
 															and x.can_attack_ground and x.distance_to(behind_pos) <= 3.5)
 				if len(behind_targets) <= 2:
 					return False
+		elif self.ownerOrder == 'Battle':
+			#check to see if the owner was damaged recently, if so, then cancel.
+			if self.game.unitList.unitDamaged(self.owner):
+				#check around and make sure it's safe.
+				behind_targets = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(self.unit) <= 3)
+				if len(behind_targets) <= 2:
+					return False
+	
+			
 		
 		#check if we are closer than the owners target, if so, do not cancel.
 		if self.owner:
@@ -211,7 +230,7 @@ class Shade:
 				our_dist = self.unit.distance_to(ownerTarget)
 				if our_dist < dist:
 					#check to see if it's safe to port here.
-					enemies = self.closestEnemies.filter(lambda x: not x.type_id in {PROBE,SCV,DRONE} and x.can_attack_ground and x.distance_to(self.unit) < 6)
+					enemies = self.closestEnemies.filter(lambda x: not x.type_id in {PROBE,SCV,DRONE} and x.can_attack_ground and x.distance_to(self.unit) < 8)
 					if len(enemies) <= 2:
 						return False
 

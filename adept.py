@@ -57,6 +57,9 @@ class Adept:
 		self.shadeOrder = None
 		self.comeHome = False
 		self.homeTarget = None
+		self.last_health = 0
+		self.damaged = False
+		self.last_health_update = 0
 		self.enemy_target_bonuses = {
 			#gets bonus vs light units.
 			#Terran
@@ -85,7 +88,7 @@ class Adept:
 		self.game = game
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)	
-	
+		self.trackHealth()	
 		self.runList()
 	
 		#debugging info
@@ -184,6 +187,18 @@ class Adept:
 
 		#print ('Adept has nothing to do for some reason')
 
+	def trackHealth(self):
+		if (self.unit.health + self.unit.shield) < self.last_health:
+			self.damaged = True
+			self.last_health_update = self.game.time
+		elif self.damaged:
+			if self.last_health_update <= (self.game.time - 2):
+				self.damaged = False
+		self.last_health = self.unit.health + self.unit.shield
+		
+
+
+
 	def psionicTransfer(self):
 		#see if we need to cast a shade at the enemy.
 		if AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT in self.abilities and self.game.can_afford(ADEPTPHASESHIFT_ADEPTPHASESHIFT):
@@ -234,7 +249,9 @@ class Adept:
 		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.
 		elif len(self.closestEnemies) > 0 and self.findPriorityTargets():
 			self.shadeOrder = 'PriorityTarget'
-		#if we are defending, shade should go behind the lines in case the enemy tries to retreat and we want to port to them.
+		#if we are in battle, have shade go behind us like a blink.
+		elif len(self.closestEnemies) > 0:
+			self.shadeOrder = 'Battle'
 		#if we are scouting, have the shade go into the base and search around.
 		else:
 			self.shadeOrder = 'None'
@@ -262,6 +279,10 @@ class Adept:
 		self.last_action = actionStr
 		return True
 	
+	@property
+	def wasDamaged(self) -> bool:
+		return self.damaged
+
 	@property
 	def position(self) -> Point2:
 		return self.saved_position

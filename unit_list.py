@@ -134,6 +134,11 @@ class UnitList():
 			targets.append(phase.currentTarget)
 		return targets
 
+	def unitDamaged(self, ownerUnit):
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.wasDamaged
+		return False		
 
 	def unitHomeTarget(self, ownerUnit):
 		#get the object by the unit_tag.

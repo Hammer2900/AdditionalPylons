@@ -84,7 +84,7 @@ class Stalker:
 			'Carrier': 5,
 			#Zerg
 			'Roach': 5,
-			'Infestor': 5,
+			'Infestor': 30,
 			'Ultralisk': 5,
 			'Overlord': -100, #no reason to attack them first.
 			'Overseer': 5,

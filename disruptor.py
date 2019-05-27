@@ -33,7 +33,7 @@ Weak against:
     Immortal
 '''
 _debug = False
-_max_range = 9.5
+_max_range = 7
 
 class Disruptor:
 
@@ -173,7 +173,7 @@ class Disruptor:
 		#get the distance of the enemy - our attack range and move that far back.
 		dist = 0
 		if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities and self.game.can_afford(EFFECT_PURIFICATIONNOVA):
-			dist = self.unit.distance_to(enemy) - (8 + enemy.radius)
+			dist = self.unit.distance_to(enemy) - (6 + enemy.radius)
 		else:
 			dist = self.unit.distance_to(enemy) - (12 + enemy.radius)
 		#move away from the target that much.

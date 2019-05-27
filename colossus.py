@@ -71,7 +71,8 @@ class Colossus:
 			'DarkTemplar': 20,
 			#Zerg
 			'Zergling': 5,
-			'Hydralisk': 10,		
+			'Hydralisk': 10,	
+			'Infestor': 30,	
 		}		
 
 	def make_decision(self, game, unit):

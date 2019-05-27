@@ -69,7 +69,7 @@ class Immortal:
 			'Disruptor': 5,
 			#Zerg
 			'Roach': 5,
-			'Infestor': 5,
+			'Infestor': 30,
 			'Ultralisk': 5,
 		}		
 
