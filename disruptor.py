@@ -47,6 +47,8 @@ class Disruptor:
 		self.label = 'Idle'
 		self.comeHome = False
 		self.homeTarget = None
+		self.ourPhaseBall = None
+		self.ourPhaseBallStart = None
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -66,7 +68,6 @@ class Disruptor:
 		self.game = game
 		self.unit = unit
 		self.abilities = self.game.allAbilities.get(self.unit.tag)
-
 		self.runList()
 	
 		#debugging info
@@ -78,6 +79,11 @@ class Disruptor:
 			
 
 	def runList(self):
+		#check for our disruptor ball and see if we need to cancel it.
+		# if self.phaseballcheck():
+		# 	self.label = 'Canceling Phase'
+		# 	return
+		
 		#keep safe from effects
 		if self.game.effectSafe(self):
 			self.label = 'Dodging'
@@ -142,6 +148,26 @@ class Disruptor:
 		#print ('Adept has nothing to do for some reason')
 
 
+	def phaseballcheck(self):
+		#if we can nova, then just return false because it's not active.
+		if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities:
+			return False
+		#otherwise, check to see if the timer has started.
+		if self.ourPhaseBallStart:
+			#get the phaseball unit_obj if we don't have it already.
+			if self.game.unitList.disruptorBallCancel(self.unit.tag):
+				#cancel the ball.
+				self.game.combinedActions.append(self.unit(AbilityId.STOP_STOP))
+				print ('cancel detected')
+				return True
+			
+			#remove everything once it's expired.
+			life_left = 2.5 - (self.game.time - self.ourPhaseBallStart)
+			if life_left <= 0:
+				self.ourPhaseBallStart = None
+				self.ourPhaseBall = None
+
+
 	def findKiteBackTarget(self, enemy):
 		#find out what our attack range is.
 		#get the distance of the enemy - our attack range and move that far back.
@@ -192,6 +218,7 @@ class Disruptor:
 		if targetEnemy:
 			if AbilityId.EFFECT_PURIFICATIONNOVA in self.abilities and self.game.can_afford(EFFECT_PURIFICATIONNOVA):
 				self.game.combinedActions.append(self.unit(AbilityId.EFFECT_PURIFICATIONNOVA, targetEnemy))
+				self.ourPhaseBallStart = self.game.time
 				return True
 		return False		
 

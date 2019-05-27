@@ -3,6 +3,7 @@ import sc2
 from sc2.ids.ability_id import AbilityId
 from sc2.constants import *
 from sc2.position import Point2, Point3
+from sc2.unit import Unit
 
 '''
 Disruptor Phase AOE Ball
@@ -26,7 +27,7 @@ class DisruptorPhased:
 		self.targetPosition = None
 		self.comeHome = False
 		self.homeTarget = None
-
+		self.cancelRequested = False
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -49,7 +50,8 @@ class DisruptorPhased:
 		self.unit = unit
 		if not self.life_start:
 			self.life_start = self.game.time
-
+			self.owner = self.find_owner()
+			
 		self.life_left = 2.1 - (self.game.time - self.life_start)
 			
 
@@ -75,7 +77,16 @@ class DisruptorPhased:
 				return #moving to enemies.
 			
 		self.label = 'Nothing to do'
+		self.cancelRequested = True
+
+	def find_owner(self):
+		if len(self.game.units(DISRUPTOR)) > 0:
+			owner = self.game.units(DISRUPTOR).closest_to(self.unit)
+			return owner
+		return None
 		
+
+	
 	def clearLurkers(self):
 		#self.saved_position
 		tags = []
@@ -150,6 +161,17 @@ class DisruptorPhased:
 			if closestFriendly and self.unit.distance_to(closestFriendly) < 2:
 				#move away from the friendly.
 				our_target = self.unit.position.towards(closestFriendly.position, distance=-2)
+			#self.cancelRequested = True
+		# 
+		# if self.life_left <= 0.2:
+		# 	#check for friendlies and cancel if they are in danger.
+		# 	friends = self.game.units.filter(lambda x: not x.is_flying and not x.type_id in {ADEPTPHASESHIFT,DISRUPTOR,DISRUPTORPHASED} and x.distance_to(self.unit) <= (1.5 + x.radius))
+		# 	if len(friends) > 0:
+		# 		#check to see if it's a priority target, if so, ignore it.
+		# 		enemies = self.closestEnemies.filter(lambda x: x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED,GHOST} and x.distance_to(self.unit) <= (1.5 + x.radius))
+		# 		if len(enemies) == 0:
+		# 			self.cancelRequested = True
+
 
 		#if we have a target, then move to it.
 		if our_target:
@@ -179,6 +201,18 @@ class DisruptorPhased:
 		self.last_action = actionStr
 		return True
 	
+
+	@property
+	def requestCancel(self) -> bool:
+		if self.cancelRequested:
+			return True
+		return False
+
+	@property
+	def ownerTag(self):
+		if self.owner:
+			return self.owner.tag
+		
 	@property
 	def currentTarget(self) -> Point2:
 		if self.targetPosition:

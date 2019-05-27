@@ -36,17 +36,7 @@ class Shade:
 		self.homeTarget = None
 		self.cachedTarget = None
 		self.enemy_target_bonuses = {
-			'Medivac': 300,
-			'SCV': 100,
-			'SiegeTank': 300,
-			'Battlecruiser': 350,
-			'Carrier': 350,
-			'Infestor': 300,
-			'BroodLord': 300,
 			'WidowMine': 300,
-			'Mothership': 600,
-			'Viking': 300,
-			'VikingFighter': 300,
 		}
 		
 		
@@ -142,24 +132,34 @@ class Shade:
 				self.game.combinedActions.append(self.unit.move(homeTarget))
 			return True
 		elif self.ownerOrder == 'WorkerSearch':
-			#get the nearest townhall and then move to it.
-			#townhalls = self.closestEnemies.of_type([NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND])
-			townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND}
-											   and x.distance_to(self.owner) > 7)
+			townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND} and x.distance_to(self.owner) > 7)
 			if len(townhalls) > 0:
 				#move to the mineral line of the closest one.
 				target = self.mineralLineTarget(townhalls.closest_to(self.unit))
 				if self.checkNewAction('move', target.position[0], target.position[1]):
 					self.game.combinedActions.append(self.unit.move(target))
 				return True
+		elif self.ownerOrder == 'PriorityTarget' and len(self.closestEnemies) > 0:
+			#find a priority target, and move to it and 2.5 distance away from the bulk of the enemies.
+			center_enemies = self.closestEnemies.center
+			targets = self.closestEnemies.filter(lambda x: x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED}
+												 and x.distance_to(self.owner) > 4).sorted(lambda x: x.distance_to(center_enemies), reverse=True)
+			if targets:
+				target_pos = targets.first.position.towards(center_enemies, -2.5)
+				if target_pos:
+					if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
+						self.game.combinedActions.append(self.unit.move(target_pos))
+					return True
+		#print ('no order able', self.ownerOrder)
 		return False	
 		
 
 	def getOwnerOrder(self):
 		#use the owner tag to get the object, then get it's order.
 		if not self.owner:
-			self.ownerOrder = 'Search' 
-		self.ownerOrder = self.game.unitList.adeptOrder(self.owner)
+			self.ownerOrder = 'NoOwner'
+		else:
+			self.ownerOrder = self.game.unitList.adeptOrder(self.owner)
 
 	def find_owner(self):
 		if len(self.game.units(ADEPT)) > 0:
@@ -184,19 +184,24 @@ class Shade:
 				workers = self.closestEnemies.filter(lambda x: x.type_id in {PROBE,SCV,DRONE} and x.distance_to(self.unit) < 6)
 				if len(workers) > 0:
 					return False
-				
-
-		
 		elif self.ownerOrder == 'ComeHome':
 			homeTarget = self.game.unitList.unitHomeTarget(self.owner)
 			if homeTarget and self.owner.distance_to(homeTarget) > self.unit.distance_to(homeTarget) and not self.game.checkSurrounded(self):
-				return False					
-			
-			
+				return False
 		elif self.ownerOrder == 'GoDefensivePoint':
 			#check to make sure we are closer to the point than our owner.
 			if self.owner.distance_to(self.game.defensive_pos) > self.unit.distance_to(self.game.defensive_pos) and not self.game.checkSurrounded(self):
 				return False			
+		elif self.ownerOrder == 'PriorityTarget':
+			#check to make sure there is a priority target near.
+			targets = self.closestEnemies.filter(lambda x: x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED} and x.distance_to(self.unit) < 4)
+			if targets:
+				center_targets = targets.center
+				behind_pos = self.unit.position.towards(center_targets, -3.5)
+				behind_targets = self.closestEnemies.filter(lambda x: not x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED}
+															and x.can_attack_ground and x.distance_to(behind_pos) <= 3.5)
+				if len(behind_targets) <= 2:
+					return False
 		
 		#check if we are closer than the owners target, if so, do not cancel.
 		if self.owner:
@@ -205,10 +210,11 @@ class Shade:
 				dist = self.owner.distance_to(ownerTarget)
 				our_dist = self.unit.distance_to(ownerTarget)
 				if our_dist < dist:
-					return False
-			
-			
-		
+					#check to see if it's safe to port here.
+					enemies = self.closestEnemies.filter(lambda x: not x.type_id in {PROBE,SCV,DRONE} and x.can_attack_ground and x.distance_to(self.unit) < 6)
+					if len(enemies) <= 2:
+						return False
+
 		
 		if self.shade_start:
 			#cancel the shift.

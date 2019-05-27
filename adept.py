@@ -66,6 +66,8 @@ class Adept:
 			'SCV': 40,
 			'WidowMine': 30,		
 			'WidowMineBurrowed': 50,	
+			'SiegeTank': 25,
+			'SiegeTankSieged': 25,
 			#Protoss
 			'Zealot': 5,
 			'Adept': 10,
@@ -75,6 +77,7 @@ class Adept:
 			#Zerg
 			'Zergling': 5,
 			'Hydralisk': 10,
+			'Infestor': 30,
 		}
 
 	def make_decision(self, game, unit):
@@ -206,8 +209,7 @@ class Adept:
 	def workerSearch(self) -> bool:
 		if self.game.defend_only or self.game.under_attack:
 			return False
-		townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND}
-											   and x.distance_to(self.unit) > 7)
+		townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND} and x.distance_to(self.unit) > 7)
 		if len(townhalls) > 0:
 			return True
 		return False
@@ -220,20 +222,31 @@ class Adept:
 		#if surrounded by enemies, shade should find a safe place to move too.
 		if len(self.closestEnemies) > 0 and self.game.checkSurrounded(self):
 			self.shadeOrder = 'Surrounded'
+		#if we are being told to come home, then shade should head towards the defensive point.
+		elif self.comeHome:
+			self.shadeOrder = 'ComeHome'
 		#if we are near an enemy base, try to get near workers to kill them.
 		elif self.workerSearch():
 			self.shadeOrder = 'WorkerSearch'
-		#if we are being told to come home, then shade should head towards the defensive point.
-		elif self.comeHome:
-			self.shadeOrder = 'ComeHome'		
 		#check general retreat.
 		elif self.game.defend_only and not self.game.under_attack and self.unit.distance_to(self.game.defensive_pos) > 5:
 			self.shadeOrder = 'GoDefensivePoint'
-		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.   
+		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.
+		elif len(self.closestEnemies) > 0 and self.findPriorityTargets():
+			self.shadeOrder = 'PriorityTarget'
 		#if we are defending, shade should go behind the lines in case the enemy tries to retreat and we want to port to them.
 		#if we are scouting, have the shade go into the base and search around.
 		else:
-			self.shadeOrder = 'WorkerSearch'
+			self.shadeOrder = 'None'
+
+
+
+
+	def findPriorityTargets(self):
+		if len(self.closestEnemies) > 0:
+			targets = self.closestEnemies.filter(lambda x: x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED} and x.distance_to(self.unit) > 4)
+			if len(targets) > 0:
+				return True
 
 
 	def getTargetBonus(self, targetName):

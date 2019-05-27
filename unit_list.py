@@ -149,6 +149,11 @@ class UnitList():
 			return unit_obj.last_target
 		return None
 	
+	def disruptorBallCancel(self, owner_tag) -> bool:
+		ballList = {k : v for k,v in self.unit_objects.items() if v.unit.type_id == DISRUPTORPHASED and v.requestCancel and v.ownerTag == owner_tag}
+		if len(ballList) > 0:
+			return True		
+		return False
 
 	def adeptOrder(self, ownerUnit):
 		#get the object by the unit_tag.

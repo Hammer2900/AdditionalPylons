@@ -179,11 +179,6 @@ class Sentry:
 				self.label = 'Retreating Safe'
 				return #staying alive
 
-			#always attack if we can.
-			if self.game.attack(self):
-				self.label = 'Attacking'
-				return #attacked already this step.
-
 			#save our butts if we can
 			if self.game.keepSafe(self):
 				self.label = 'Retreating Death'
@@ -193,6 +188,13 @@ class Sentry:
 			if self.game.KeepKiteRange(self):
 				self.label = 'Kiting'
 				return #kiting
+
+			#always attack if we can.
+			if self.game.attack(self):
+				self.label = 'Attacking'
+				return #attacked already this step.
+
+
 
 			#look around our range and find the highest target value and move towards it.
 			if (not self.game.defend_only or self.game.under_attack) and self.game.moveNearEnemies(self):

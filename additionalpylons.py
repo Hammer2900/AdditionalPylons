@@ -37,19 +37,19 @@ _trainfile = "data/protoss-training"
 #load up configuration from the config file.
 _ini_parse = configparser.ConfigParser()
 _ini_parse.read('config.ini')
-_debug = _ini_parse['Debug'].getboolean('_debug')
-_debug_economy = _ini_parse['Debug'].getboolean('_debug_economy')
-_debug_positions = _ini_parse['Debug'].getboolean('_debug_positions')
-_debug_score = _ini_parse['Debug'].getboolean('_debug_score')
-_debug_counters = _ini_parse['Debug'].getboolean('_debug_counters')
-_debug_effects = _ini_parse['Debug'].getboolean('_debug_effects')
-_debug_combat = _ini_parse['Debug'].getboolean('_debug_combat')
-_local_ladder = _ini_parse['Debug'].getboolean('_local_ladder')
-_use_data = _ini_parse['Strategy'].getboolean('_use_data')
-_test_strat_id = int(_ini_parse['Strategy']['_test_strat_id'])
-_zerg_race_strat_id = int(_ini_parse['Strategy']['_zerg_race_strat_id'])
-_protoss_race_strat_id = int(_ini_parse['Strategy']['_protoss_race_strat_id'])
-_terran_race_strat_id = int(_ini_parse['Strategy']['_terran_race_strat_id'])
+_debug = _ini_parse['Debug'].getboolean('debug')
+_debug_economy = _ini_parse['Debug'].getboolean('debug_economy')
+_debug_positions = _ini_parse['Debug'].getboolean('debug_positions')
+_debug_score = _ini_parse['Debug'].getboolean('debug_score')
+_debug_counters = _ini_parse['Debug'].getboolean('debug_counters')
+_debug_effects = _ini_parse['Debug'].getboolean('debug_effects')
+_debug_combat = _ini_parse['Debug'].getboolean('debug_combat')
+_local_ladder = _ini_parse['Debug'].getboolean('local_ladder')
+_use_data = _ini_parse['Strategy'].getboolean('use_data')
+_test_strat_id = int(_ini_parse['Strategy']['test_strat_id'])
+_zerg_race_strat_id = int(_ini_parse['Strategy']['zerg_race_strat_id'])
+_protoss_race_strat_id = int(_ini_parse['Strategy']['protoss_race_strat_id'])
+_terran_race_strat_id = int(_ini_parse['Strategy']['terran_race_strat_id'])
 _exclude_list = {ADEPTPHASESHIFT,INTERCEPTOR,EGG,LARVA}
 
 class MyBot(sc2.BotAI, effects_obj):
@@ -158,6 +158,10 @@ class MyBot(sc2.BotAI, effects_obj):
 				win_per = self._training_data.stratWinPer()
 				full = "I'm starting with {}.{}".format(intro_des, win_per)
 				await self._client.chat_send(full, team_only=False)
+			else:
+				intro_des = self._strat_manager.unitCounter.getIntroDescription(self._strat_manager.strat_id)
+				full = "I'm starting with {}.  It's been chosen by opponent race".format(intro_des)
+				await self._client.chat_send(full, team_only=False)				
 			self.intro_said = True
 
 		#first step stuff
