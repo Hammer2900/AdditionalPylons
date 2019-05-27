@@ -10,44 +10,44 @@ Currently competes on the [Starcraft 2 AI ladder](http://sc2ai.net/)
 ## config.ini Settings
 
 #### [Debug]
-###### \_debug
+###### debug
 Setting this to true is required for any debugging to show up.   If set to False, all other debug settings should also be set to False, as they will eat up extra resources when true.
 
-###### \_debug_economy
+###### debug_economy
 Shows the intel along with the demands needed for units.
 
-###### \_debug_positions
+###### debug_positions
 Shows the position of some set buildings.
 
-###### \_debug_score
+###### debug_score
 Shows the score of the units around a selected unit.   Creates a sleep timeout as well and will slow the game to a stop when many units are being scored.
 
-###### \_debug_counters
+###### debug_counters
 Shows the enemy intel along with the raw amount of counters to train in response.
 
-###### \_debug_effects
+###### debug_effects
 Shows the position and radius of some effects.
 
-###### \_debug_combat
+###### debug_combat
 Draws lines to see what the units are targeting, as well as giving their current action in text.   If \_debug is true, any unit(s) selected will have this turned on for them, even if this is false.
 
-###### \_local_ladder
+###### local_ladder
 Prints opp_id to stdout at the start of the match.  Can be used to debug other prints following, but won't be useful in most cases. 
 
 #### [Strategy]
-###### \_use_data
+###### use_data
 Determines if the bot saves opponent data to learn the best strategy and preseed intel.
 
-###### \_test_strat_id
+###### test_strat_id
 Force an opening strategy to use(Currently 1-5) when data is on.   Set to 0 to turn off.
 
-###### \_zerg_race_strat_id
+###### zerg_race_strat_id
 Opening strat that will be used against Zerg bots when data is off.
 
-###### \_protoss_race_strat_id
+###### protoss_race_strat_id
 Opening strat that will be used against Protoss bots when data is off.
 
-###### \_terran_race_strat_id
+###### terran_race_strat_id
 Opening strat that will be used against Terran bots when data is off.
 
 ## unit_counters.py
