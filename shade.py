@@ -159,7 +159,15 @@ class Shade:
 				target_pos = self.owner.position.towards(center_enemies, -5)
 				if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
 					self.game.combinedActions.append(self.unit.move(target_pos))
-				return True			
+				return True
+		elif self.ownerOrder == 'Chase':
+			#get the target of the owner.
+			chaseTarget = self.game.unitList.adeptChaseTarget(self.owner)
+			if chaseTarget:
+				if self.checkNewAction('move', chaseTarget.position[0], chaseTarget.position[1]):
+					self.game.combinedActions.append(self.unit.move(chaseTarget))
+				return True
+			
 		#print ('no order able', self.ownerOrder)
 		return False	
 		
@@ -220,8 +228,6 @@ class Shade:
 				if len(behind_targets) <= 2:
 					return False
 	
-			
-		
 		#check if we are closer than the owners target, if so, do not cancel.
 		if self.owner:
 			ownerTarget = self.game.unitList.unitTarget(self.owner)

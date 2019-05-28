@@ -363,6 +363,10 @@ class MyBot(sc2.BotAI, effects_obj):
 
 			#not in range, move towards the target.
 			if unit_obj.checkNewAction('move', targetEnemy.position[0], targetEnemy.position[1]):
+				#check if it's an adept, if so run a chasing check.
+				if unit_obj.unit.name == 'Adept':
+					unit_obj.checkChasing(targetEnemy)
+
 				if unit_obj.unit.name == 'Stalker' and unit_obj.offensiveBlink(targetEnemy):
 					return True
 				# elif not unit_obj.unit.is_flying and unit_obj.unit.ground_range < 2:

@@ -59,6 +59,7 @@ class Adept:
 		self.homeTarget = None
 		self.last_health = 0
 		self.damaged = False
+		self.chasePosition = None
 		self.last_health_update = 0
 		self.enemy_target_bonuses = {
 			#gets bonus vs light units.
@@ -257,6 +258,15 @@ class Adept:
 			self.shadeOrder = 'None'
 
 
+	def checkChasing(self, targetEnemy):
+		if self.shadeOrder == 'Battle':
+			enemy_distance = self.unit.distance_to(targetEnemy)
+			if enemy_distance > 6:
+				lead_position = self.game.leadTarget(targetEnemy, self)
+				overall = self.unit.distance_to(lead_position) - enemy_distance
+				if overall > 0:
+					self.shadeOrder = 'Chase'
+					self.chasePosition = lead_position
 
 
 	def findPriorityTargets(self):

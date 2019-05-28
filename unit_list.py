@@ -134,6 +134,14 @@ class UnitList():
 			targets.append(phase.currentTarget)
 		return targets
 
+	def adeptChaseTarget(self, ownerUnit):
+		#get the object by the unit_tag.
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.chasePosition
+		return None
+		
+
 	def unitDamaged(self, ownerUnit):
 		if self.unit_objects.get(ownerUnit.tag):
 			unit_obj = self.unit_objects.get(ownerUnit.tag)

@@ -228,7 +228,7 @@ class Stalker:
 					blinkPoint = self.unit.position.towards(targetEnemy.position, distance=5.5)
 					if blinkPoint:
 						#check to make sure we aren't about to blink into a bunch of other units who want to kill us.
-						possibles = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(blinkPoint) <= (x.ground_range + x.radius + self.unit.radius) and self.game.targetFacing(self, x))
+						possibles = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(blinkPoint) <= (x.ground_range + x.radius + self.unit.radius + 1) and self.game.targetFacing(self, x))
 						if len(possibles) == 0:
 							if self.checkNewAction('blink', blinkPoint[0], blinkPoint[1]):
 								self.game.combinedActions.append(self.unit(AbilityId.EFFECT_BLINK_STALKER, blinkPoint))
