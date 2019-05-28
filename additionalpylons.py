@@ -201,7 +201,6 @@ class MyBot(sc2.BotAI, effects_obj):
 		self.cancelBuildings()
 
 		if _debug:
-			print ('debug on?', _debug)
 			if _debug_counters:
 				self._strat_manager.debug_full_counters()
 			if _debug_positions:

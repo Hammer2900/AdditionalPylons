@@ -105,7 +105,13 @@ class Forge:
 				return True				
 
 	def researchGroundArmor(self):
-		if (len(self.game.units(ZEALOT)) > 5 or self._ground_dps3_researched) and not self._ground_armor_started and not self._ground_armor_researched:
+		#condition 1.
+		oked = False
+		if self._ground_dps_researched and len(self.game.units(TWILIGHTCOUNCIL)) == 0:
+			oked = True
+		if (len(self.game.units(ZEALOT)) > 5 or self._ground_dps3_researched):
+			oked = True
+		if oked and not self._ground_armor_started and not self._ground_armor_researched:
 			if AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1 in self.abilities and self.game.can_afford(FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1):
 				self.game.combinedActions.append(self.unit(AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1))
 				self._ground_armor_started = True

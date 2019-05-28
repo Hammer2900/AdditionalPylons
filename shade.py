@@ -35,6 +35,7 @@ class Shade:
 		self.comeHome = False
 		self.homeTarget = None
 		self.cachedTarget = None
+		self.emptyTarget = None
 		self.enemy_target_bonuses = {
 			'WidowMine': 300,
 		}
@@ -50,6 +51,7 @@ class Shade:
 			self.shade_start = self.game.time
 			#find our owner adept.
 			self.owner = self.find_owner()
+			self.emptyTarget = self.findEmptyExpansion()
 	
 		self.getOwnerOrder()
 		self.runList()
@@ -71,7 +73,12 @@ class Shade:
 			return # canceled shade.
 		
 		if self.ownerOrders():
+			self.label = 'Owners Order'
 			return #doing orders
+		
+		if self.moveToExpansion():
+			self.label = 'Moving to Expansion'
+			return
 		
 		#priority is to move towards enemies not in range.
 		if self.moveToEnemies():
@@ -83,6 +90,17 @@ class Shade:
 			return #search enemies.
 				
 
+
+	def findEmptyExpansion(self):
+		#loop each expansion, if it's owned by a friendly, then don't add it.
+		locations = []
+		for possible in self.game.expansion_locations:
+			if not self.game.units().closer_than(6, possible).exists:
+				locations.append(possible)
+		if len(locations) > 0:
+			#choose a location randomly.
+			return random.choice(locations)
+		return None
 
 	def mineralLineTarget(self, townhall):
 		if self.cachedTarget:
@@ -248,7 +266,14 @@ class Shade:
 				self.shade_start = None
 				return True
 		return False
-		
+	
+	def moveToExpansion(self):
+		#move to the expansion
+		if not self.emptyTarget and (not self.game.defend_only or self.game.moveRally):
+			return False
+		if self.checkNewAction('move', self.emptyTarget.position[0], self.emptyTarget.position[1]):
+			self.game.combinedActions.append(self.unit.move(self.emptyTarget))
+		return True		
 		
 	def searchEnemies(self):
 		#search for enemies

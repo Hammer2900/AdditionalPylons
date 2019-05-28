@@ -129,13 +129,11 @@ class Adept:
 			#check if we are surrounded
 			if self.game.checkSurrounded(self):
 				self.shadeOrder = 'Surrounded'
-				
-
 
 			#see if we are able to escape if needed.
-			if self.game.canEscape(self) and self.game.keepSafe(self):
-				self.label = 'Retreating Safe'
-				return #staying alive
+			# if self.game.canEscape(self) and self.game.keepSafe(self):
+			# 	self.label = 'Retreating Safe'
+			# 	return #staying alive
 
 			#always attack if we can.
 			if self.game.attack(self):
