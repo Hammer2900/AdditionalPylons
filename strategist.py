@@ -237,7 +237,7 @@ class Strategist:
 
 	
 		#add in stop for easy assim fix.
-		if self.game.units(PYLON).amount < 2:
+		if self.game.units(NEXUS).amount < 3:
 			return
 			
 		#build 2nd assims
