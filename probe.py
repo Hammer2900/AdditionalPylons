@@ -681,9 +681,12 @@ class Probe:
 		if self.unit.shield == 0:
 			#move to mineral patch closes to start location.
 			mining_target = self.findRushDefMinerals()
-			self.game.combinedActions.append(self.unit.gather(mining_target, queue=False))
-			self.game.update_workers = True
-			return True
+			#get the distance to the mining_target.   If it's less than 3, then just keep fighting.
+			away_dist = self.unit.distance_to(mining_target)
+			if away_dist > 3:
+				self.game.combinedActions.append(self.unit.gather(mining_target, queue=False))
+				self.game.update_workers = True
+				return True
 		return False
 
 	def placeProxyPylon(self):
