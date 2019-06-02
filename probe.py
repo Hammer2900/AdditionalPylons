@@ -683,7 +683,7 @@ class Probe:
 			mining_target = self.findRushDefMinerals()
 			#get the distance to the mining_target.   If it's less than 3, then just keep fighting.
 			away_dist = self.unit.distance_to(mining_target)
-			if away_dist > 3:
+			if away_dist > 1.5:
 				self.game.combinedActions.append(self.unit.gather(mining_target, queue=False))
 				self.game.update_workers = True
 				return True
