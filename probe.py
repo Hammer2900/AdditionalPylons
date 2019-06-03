@@ -59,6 +59,7 @@ class Probe:
 		self.next_assim_update = 0
 		self.comeHome = False
 		self.homeTarget = None
+		self.shield_regen = False
 		self.enemy_target_bonuses = {
 			'Medivac': 300,
 			'SCV': 100,
@@ -675,8 +676,33 @@ class Probe:
 #################
 #Micro Functions#
 #################
-
 	def stopFighting(self):
+		#if our shield + health is less than 8, retreat.
+		#stay retreated until our shield is regen to 15, so 23 total.
+		total_health = self.unit.shield + self.unit.health		
+		if self.shield_regen and total_health >= 23:
+			self.shield_regen = False
+		elif not self.shield_regen and total_health <= 8:
+			self.shield_regen = True
+		else:
+			self.shield_regen = False
+		
+		#if our shield is at 0, then find the nearest mineral to start location and go to it.
+		if self.shield_regen and self.closestEnemies:		
+			#move to mineral patch closes to start location.
+			mining_target = self.findRushDefMinerals()
+			#get the distance of the nearest enemy and the distance to the mining target.  If it's less than 2, then keep fighting.
+			closestEnemy = self.closestEnemies.closest_to(self.unit)
+			if closestEnemy:
+				away_dist = closestEnemy.distance_to(mining_target)
+				if away_dist > 2:
+					self.game.combinedActions.append(self.unit.gather(mining_target, queue=False))
+					self.game.update_workers = True
+					return True
+		return False
+	
+
+	def stopFightingOld(self):
 		#if our shield is at 0, then find the nearest mineral to start location and go to it.
 		if self.unit.shield == 0 and self.closestEnemies:		
 			#move to mineral patch closes to start location.
