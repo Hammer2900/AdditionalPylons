@@ -544,6 +544,8 @@ class Probe:
 			self.next_assim_update = self.game.time + update_time
 
 	def removeGatherer(self):
+		if not self.game:
+			return
 		if self.game._worker_assignments.get(self.unit.tag):
 			del self.game._worker_assignments[self.unit.tag]		
 		

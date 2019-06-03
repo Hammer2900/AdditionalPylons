@@ -126,6 +126,12 @@ class UnitList():
 		# 	print ('Unit Created:', unit.name, unit.tag)
 		
 
+	def unitPosition(self, ownerUnit):
+		if self.unit_objects.get(ownerUnit.tag):
+			unit_obj = self.unit_objects.get(ownerUnit.tag)
+			return unit_obj.saved_position
+		return None		
+
 
 	def phaseTargets(self):
 		phaseList = {k : v for k,v in self.unit_objects.items() if v.unit.name == 'DisruptorPhased' }

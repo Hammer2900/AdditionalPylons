@@ -62,7 +62,7 @@ class Shade:
 				opos = Point3((self.owner.position3d.x, self.owner.position3d.y, (self.owner.position3d.z + 1)))
 				spos = Point3((self.unit.position3d.x, self.unit.position3d.y, (self.unit.position3d.z + 1)))
 				self.game._client.debug_line_out(spos, opos, color=Point3((155, 255, 25)))
-			lb = "{} {}".format(str(self.ownerOrder), self.label)
+			lb = "{} ||| {}".format(str(self.ownerOrder), self.label)
 			self.game._client.debug_text_3d(lb, self.unit.position3d)
 
 
@@ -140,6 +140,7 @@ class Shade:
 
 
 	def ownerOrders(self):
+		owner_pos = self.game.unitList.unitPosition(self.owner)
 		if self.ownerOrder == 'GoDefensivePoint':
 			if self.checkNewAction('move', self.game.defensive_pos.position[0], self.game.defensive_pos.position[1]):
 				self.game.combinedActions.append(self.unit.move(self.game.defensive_pos))
@@ -150,7 +151,7 @@ class Shade:
 				self.game.combinedActions.append(self.unit.move(homeTarget))
 			return True
 		elif self.ownerOrder == 'WorkerSearch':
-			townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND} and x.distance_to(self.owner) > 7)
+			townhalls = self.closestEnemies.filter(lambda x: x.type_id in {NEXUS,HATCHERY,COMMANDCENTER,ORBITALCOMMAND} and x.distance_to(owner_pos) > 7)
 			if len(townhalls) > 0:
 				#move to the mineral line of the closest one.
 				target = self.mineralLineTarget(townhalls.closest_to(self.unit))
@@ -161,7 +162,7 @@ class Shade:
 			#find a priority target, and move to it and 2.5 distance away from the bulk of the enemies.
 			center_enemies = self.closestEnemies.center
 			targets = self.closestEnemies.filter(lambda x: x.type_id in {SIEGETANKSIEGED,INFESTOR,INFESTORBURROWED}
-												 and x.distance_to(self.owner) > 4).sorted(lambda x: x.distance_to(center_enemies), reverse=True)
+												 and x.distance_to(owner_pos) > 4).sorted(lambda x: x.distance_to(center_enemies), reverse=True)
 			if targets:
 				target_pos = targets.first.position.towards(center_enemies, -2.5)
 				if target_pos:
@@ -174,7 +175,10 @@ class Shade:
 			targets = self.closestEnemies.filter(lambda x: x.can_attack_ground)
 			if targets:
 				center_enemies = targets.center
-				target_pos = self.owner.position.towards(center_enemies, -5)
+				#get our owners position.
+				#owner_pos = self.game.unitList.unitPosition(self.owner)
+				target_pos = owner_pos.towards(center_enemies, -5)
+
 				if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
 					self.game.combinedActions.append(self.unit.move(target_pos))
 				return True
@@ -185,7 +189,10 @@ class Shade:
 				if self.checkNewAction('move', chaseTarget.position[0], chaseTarget.position[1]):
 					self.game.combinedActions.append(self.unit.move(chaseTarget))
 				return True
-			
+		elif self.ownerOrder == 'MoveRally':
+			if self.checkNewAction('move', self.game.rally_pos.position[0], self.game.rally_pos.position[1]):
+				self.game.combinedActions.append(self.unit.move(self.game.rally_pos))
+			return True			
 		#print ('no order able', self.ownerOrder)
 		return False	
 		
@@ -209,6 +216,8 @@ class Shade:
 		if (self.shade_start + 6.5) >= self.game.time:
 			return False
 		
+		owner_pos = self.game.unitList.unitPosition(self.owner)
+		
 		#if the owner order is that we are surrounded, do not cancel unless we are also surrounded.
 		if self.ownerOrder == 'Surrounded':
 			if not self.game.checkSurrounded(self):
@@ -222,11 +231,11 @@ class Shade:
 					return False
 		elif self.ownerOrder == 'ComeHome':
 			homeTarget = self.game.unitList.unitHomeTarget(self.owner)
-			if homeTarget and self.owner.distance_to(homeTarget) > self.unit.distance_to(homeTarget) and not self.game.checkSurrounded(self):
+			if homeTarget and owner_pos.distance_to(homeTarget) > self.unit.distance_to(homeTarget) and not self.game.checkSurrounded(self):
 				return False
 		elif self.ownerOrder == 'GoDefensivePoint':
 			#check to make sure we are closer to the point than our owner.
-			if self.owner.distance_to(self.game.defensive_pos) > self.unit.distance_to(self.game.defensive_pos) and not self.game.checkSurrounded(self):
+			if owner_pos.distance_to(self.game.defensive_pos) > self.unit.distance_to(self.game.defensive_pos) and not self.game.checkSurrounded(self):
 				return False			
 		elif self.ownerOrder == 'PriorityTarget':
 			#check to make sure there is a priority target near.
@@ -245,12 +254,26 @@ class Shade:
 				behind_targets = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(self.unit) <= 3)
 				if len(behind_targets) <= 2:
 					return False
+		elif self.ownerOrder == 'Chase':
+			chaseTarget = self.game.unitList.adeptChaseTarget(self.owner)
+			if chaseTarget:
+				#check if we are closer than the owner, if so, do not cancel.
+				dist = owner_pos.distance_to(chaseTarget)
+				our_dist = self.unit.distance_to(chaseTarget)
+				if our_dist < dist:
+					#check to see if it's safe to port here.
+					enemies = self.closestEnemies.filter(lambda x: not x.type_id in {PROBE,SCV,DRONE} and x.can_attack_ground and x.distance_to(self.unit) < 8)
+					if len(enemies) <= 2:
+						return False
+		elif self.ownerOrder == 'MoveRally':
+			if owner_pos.distance_to(self.game.rally_pos) > self.unit.distance_to(self.game.rally_pos) and not self.game.checkSurrounded(self):
+				return False					
 	
 		#check if we are closer than the owners target, if so, do not cancel.
 		if self.owner:
 			ownerTarget = self.game.unitList.unitTarget(self.owner)
 			if ownerTarget:
-				dist = self.owner.distance_to(ownerTarget)
+				dist = owner_pos.distance_to(ownerTarget)
 				our_dist = self.unit.distance_to(ownerTarget)
 				if our_dist < dist:
 					#check to see if it's safe to port here.

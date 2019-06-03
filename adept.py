@@ -243,7 +243,7 @@ class Adept:
 		elif self.workerSearch():
 			self.shadeOrder = 'WorkerSearch'
 		#check general retreat.
-		elif self.game.defend_only and not self.game.under_attack and self.unit.distance_to(self.game.defensive_pos) > 5:
+		elif self.game.defend_only and not self.game.under_attack and self.unit.distance_to(self.game.defensive_pos) > 3:
 			self.shadeOrder = 'GoDefensivePoint'
 		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.
 		elif len(self.closestEnemies) > 0 and self.findPriorityTargets():
@@ -251,6 +251,8 @@ class Adept:
 		#if we are in battle, have shade go behind us like a blink.
 		elif len(self.closestEnemies) > 0:
 			self.shadeOrder = 'Battle'
+		elif self.game.moveRally and not self.game.under_attack and self.unit.distance_to(self.game.rally_pos) > 3:
+			self.shadeOrder = 'MoveRally'
 		#if we are scouting, have the shade go into the base and search around.
 		else:
 			self.shadeOrder = 'None'
