@@ -348,7 +348,7 @@ class Probe:
 		#get the distance to expansion, if it's more than 1, move to it.
 		#find a mineral patch close to the location and move to it.
 		if not self.nexus_position:
-			self.nexus_position = self.game.state.vespene_geyser.closer_than(15.0, self.game.expPos).first
+			#self.nexus_position = self.game.state.vespene_geyser.closer_than(15.0, self.game.expPos).first
 			self.nexus_position = self.game.expPos
 		
 		dist = self.unit.distance_to(self.nexus_position)
