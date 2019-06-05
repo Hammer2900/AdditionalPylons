@@ -707,48 +707,8 @@ class MyBot(sc2.BotAI, effects_obj):
 				return True
 		return False
 
-	def moveToFriendliesExp(self, unit_obj):
-		return False
-		#if we are moving and no enemies exist, then we must be search, so return false.
-		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
-			return False
 
-		closestFriendly = None
-		closestEnemy = None
-		fUnits = self.units().exclude_type([WARPPRISM,OBSERVER]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
-		if len(fUnits) == 0 or len(self.cached_enemies) == 0:
-			#no friends or no enemies.
-			return False
-
-		groundEnemies = self.cached_enemies.not_flying
-		groundFriendlies = fUnits.filter(lambda x: x.can_attack_ground)
-		airEnemies = self.cached_enemies.flying
-		airFriendlies = fUnits.filter(lambda x: x.can_attack_air)
-
-
-		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air and len(groundEnemies) > 0 and len(groundFriendlies) > 0:
-			#can only attack ground units, so find ground unit enemys.
-			closestEnemy = groundEnemies.closest_to(unit_obj.unit)
-			closestFriendly = groundFriendlies.closest_to(closestEnemy)
-		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground and len(airEnemies) > 0 and len(airFriendlies) > 0:
-			# can only attack air units.
-			closestEnemy = airEnemies.closest_to(unit_obj.unit)
-			closestFriendly = airFriendlies.closest_to(closestEnemy)
-		else:
-			closestEnemy = self.cached_enemies.closest_to(unit_obj.unit)
-			closestFriendly = fUnits.closest_to(closestEnemy)
-
-		if closestEnemy and closestFriendly:
-			#check to see if the friendly is closer to the enemy than we are.  If so, move to the friendly, else return false.
-			if unit_obj.unit.distance_to(closestEnemy) > closestFriendly.distance_to(closestEnemy):
-				if unit_obj.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
-					self.combinedActions.append(unit_obj.unit.move(closestFriendly))
-				if unit_obj.unit.is_selected or _debug_combat:
-					unit_obj.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
-				return True
-		return False
-
-	def moveToFriendlies(self, unit_obj):
+	def moveToFriendliesOld(self, unit_obj):
 		#if we are moving and no enemies exist, then we must be search, so return false.
 		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
 			return False
@@ -774,6 +734,46 @@ class MyBot(sc2.BotAI, effects_obj):
 				closestFriendly = fUnits.closest_to(self.cached_enemies.closest_to(unit_obj.unit))
 			elif fUnits:
 				closestFriendly = fUnits.closest_to(unit_obj.unit)
+
+		if closestFriendly:
+			#if we are not close to it, then our priority is to get there.
+			if unit_obj.unit.distance_to(closestFriendly) > 10:
+				if unit_obj.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
+					self.combinedActions.append(unit_obj.unit.move(closestFriendly))
+				if unit_obj.unit.is_selected or _debug_combat:
+					unit_obj.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
+				return True
+		return False
+
+
+	def moveToFriendlies(self, unit_obj):
+		#if we are moving and no enemies exist, then we must be search, so return false.
+		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
+			return False
+
+		#this version will get the enemy nearest the attack point.  self.prism_pylon_pos
+
+		closestFriendly = None
+		fUnits = self.units().not_structure.exclude_type([WARPPRISM,OBSERVER,PROBE]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
+		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air:
+			#can only attack ground, so go to enemies that are near ground units.
+			if self.cached_enemies.not_flying.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.not_flying.closest_to(self.prism_pylon_pos))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(self.prism_pylon_pos)
+
+		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground:
+			# can only attack air units.
+			if self.cached_enemies.flying.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.flying.closest_to(self.prism_pylon_pos))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(self.prism_pylon_pos)
+		else:
+			#can attack anything.
+			if self.cached_enemies.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.closest_to(self.prism_pylon_pos))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(self.prism_pylon_pos)
 
 		if closestFriendly:
 			#if we are not close to it, then our priority is to get there.
@@ -1072,7 +1072,7 @@ class MyBot(sc2.BotAI, effects_obj):
 			return topEnemy
 
 	def findEnergyTarget(self, unit_obj, ability_range):
-		enemyThreats = unit_obj.closestEnemies.filter(lambda x: x.energy > 0).closer_than(ability_range, unit_obj.unit).sorted(lambda x: x.distance_to(unit_obj.unit))
+		enemyThreats = unit_obj.closestEnemies.filter(lambda x: x.energy > 0 and x.distance_to(unit_obj.unit) < ability_range).sorted(lambda x: x.distance_to(unit_obj.unit))
 		if enemyThreats.exists:
 			return enemyThreats[0]
 
@@ -1764,6 +1764,9 @@ class MyBot(sc2.BotAI, effects_obj):
 				else:
 					self.opp_id = 5
 			#load up the pickle info and the opp info.
+
+			#self.opp_id = "{}-{}".format(self.enemy_race, self.opp_id)
+
 			if _local_ladder:
 				print ('playing vs', self.opp_id)
 			self._training_data.loadData()

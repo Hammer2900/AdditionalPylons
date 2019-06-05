@@ -679,12 +679,12 @@ class Probe:
 #Micro Functions#
 #################
 	def stopFighting(self):
-		#if our shield + health is less than 8, retreat.
+		#if our shield + health is less than 10, retreat.
 		#stay retreated until our shield is regen to 15, so 23 total.
 		total_health = self.unit.shield + self.unit.health		
 		if self.shield_regen and total_health >= 23:
 			self.shield_regen = False
-		elif not self.shield_regen and total_health <= 8:
+		elif not self.shield_regen and total_health <= 10:
 			self.shield_regen = True
 		else:
 			self.shield_regen = False
@@ -743,6 +743,16 @@ class Probe:
 		if self.checkNewAction('move', self.game.proxy_pylon_loc[0], self.game.proxy_pylon_loc[1]):
 			self.game.combinedActions.append(self.unit.move(self.game.proxy_pylon_loc))
 		return True
+
+
+	def moveToEnemies(self):
+		closestEnemy = self.game.known_enemy_units.not_flying.exclude_type([ADEPTPHASESHIFT]).closest_to(self.unit)
+		#get the distance to the closest Enemy and if it's in attack range, then don't move.
+		if closestEnemy.distance_to(self.unit.position) > self.unit.ground_range + self.unit.radius + closestEnemy.radius - 0.05:
+			self.last_target = Point3((closestEnemy.position3d.x, closestEnemy.position3d.y, (closestEnemy.position3d.z + 1)))
+			if self.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
+				self.game.combinedActions.append(self.unit.attack(closestEnemy.position))
+			return True
 
 	def moveToEnemies(self):
 		#move to the enemy that is closest to the nexus.
