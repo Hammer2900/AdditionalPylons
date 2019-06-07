@@ -30,7 +30,7 @@ from protoss_agent import ProtossAgent as protossAgent
 from effects import Effects as effects_obj
 
 
-_version = 'v1.601'
+_version = 'v1.607'
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 
@@ -504,6 +504,9 @@ class MyBot(sc2.BotAI, effects_obj):
 			return True
 		return False
 
+
+
+
 	def defend(self, unit_obj):
 		#clear out destructables around the base.
 		for nexus in self.units(NEXUS):
@@ -539,6 +542,7 @@ class MyBot(sc2.BotAI, effects_obj):
 		if unit_obj.unit.air_range > unit_obj.unit.ground_range:
 			unit_range = unit_obj.unit.air_range + bonus_range
 		#see if any enemies are in our range.
+
 		enemyThreats = unit_obj.closestEnemies.not_structure.filter(lambda x: unit_obj.unit.target_in_range(x, bonus_distance=bonus_range))
 		if enemyThreats:
 			return False #already engaged.
@@ -708,6 +712,46 @@ class MyBot(sc2.BotAI, effects_obj):
 		return False
 
 
+	def moveToFriendlies(self, unit_obj):
+		#if we are moving and no enemies exist, then we must be search, so return false.
+		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
+			return False
+
+		closestFriendly = None
+		fUnits = self.units().filter(lambda x: not x.type_id in {WARPPRISM,OBSERVER,PROBE,PHOENIX}
+									 and not x.is_structure
+									 and (x.can_attack_ground or x.can_attack_air))
+		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air:
+			#can only attack ground, so go to enemies that are near ground units.
+			if self.cached_enemies.not_flying.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.not_flying.closest_to(unit_obj.unit))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(unit_obj.unit)
+
+		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground:
+			# can only attack air units.
+			if self.cached_enemies.flying.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.flying.closest_to(unit_obj.unit))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(unit_obj.unit)
+		else:
+			#can attack anything.
+			if self.cached_enemies.exists and fUnits:
+				closestFriendly = fUnits.closest_to(self.cached_enemies.closest_to(unit_obj.unit))
+			elif fUnits:
+				closestFriendly = fUnits.closest_to(unit_obj.unit)
+
+		if closestFriendly:
+			#if we are not close to it, then our priority is to get there.
+			if unit_obj.unit.distance_to(closestFriendly) > 10:
+				if unit_obj.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
+					self.combinedActions.append(unit_obj.unit.move(closestFriendly))
+				if unit_obj.unit.is_selected or _debug_combat:
+					unit_obj.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
+				return True
+		return False
+
+
 	def moveToFriendliesOld(self, unit_obj):
 		#if we are moving and no enemies exist, then we must be search, so return false.
 		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
@@ -746,7 +790,7 @@ class MyBot(sc2.BotAI, effects_obj):
 		return False
 
 
-	def moveToFriendlies(self, unit_obj):
+	def moveToFriendliesNearWarpprism(self, unit_obj):
 		#if we are moving and no enemies exist, then we must be search, so return false.
 		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
 			return False
@@ -972,16 +1016,19 @@ class MyBot(sc2.BotAI, effects_obj):
 		#start enemy structures that don't attack out with -1000 pts so they are always below units.
 		if score == 0 and enemy.is_structure:
 			#building, so lets just subtract the distance.
-			hp_lost = (enemy.health_max + enemy.shield_max) - (enemy.health + enemy.shield)
+			#hp_lost = (enemy.health_max + enemy.shield_max) - (enemy.health + enemy.shield)
+			hp_left = (enemy.health + enemy.shield)
 			if enemy.name == 'Pylon':
 				#going less than -400 can result in positive points, might mess things up, but might be good to finish off a pylon - test later.
 				score = self.scorePylon(enemy, unit_obj)
 				if score == 0:
-					score = (hp_lost - (enemy.health_max + enemy.shield_max))
+					#score = (hp_lost - (enemy.health_max + enemy.shield_max))
+					score -= hp_left
 			elif enemy.name == 'Bunker':
 				score = 0
 			else:
-				score = (hp_lost - (enemy.health_max + enemy.shield_max))
+				score -= hp_left
+				#score = (hp_lost - (enemy.health_max + enemy.shield_max))
 
 		#distance to enemy matters.  Use % of max range distance, then subtract it from 100.
 		dist = 0
@@ -1460,7 +1507,7 @@ class MyBot(sc2.BotAI, effects_obj):
 		closestRadius = 0
 		for [position, radius] in use_positions:
 			#get the distance to the position.
-			if unit_obj.unit.name in ['Zealot'] and radius > 2:
+			if unit_obj.unit.name in ['Zealot'] and radius > 4:
 				continue
 			dist = unit_obj.unit.distance_to(position) - unit_obj.unit.radius
 			if dist < closestDistance:

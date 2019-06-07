@@ -1,5 +1,6 @@
 from sc2.constants import *
 from sc2 import Race
+from sc2.position import Point2, Point3
 
 
 '''
@@ -48,10 +49,10 @@ class Effects():
 
 		if len(self.units(DISRUPTORPHASED)) > 0:
 			#get their target position and their position
-			targets = self.unitList.phaseTargets()
-			for position in targets:
-				if position:
-					self.dodge_positions.append([position, 2.5])
+			# targets = self.unitList.phaseTargets()
+			# for position in targets:
+			# 	if position:
+			# 		self.dodge_positions.append([position, 2.5])
 
 			for unit in self.units(DISRUPTORPHASED):
 				self.dodge_positions.append([unit.position, 2.5])
