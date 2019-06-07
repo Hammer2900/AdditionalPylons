@@ -754,7 +754,7 @@ class Probe:
 				self.game.combinedActions.append(self.unit.attack(closestEnemy.position))
 			return True
 
-	def moveToEnemies(self):
+	def moveToEnemiesOld(self):
 		#move to the enemy that is closest to the nexus.
 		if self.game.units(NEXUS).exists and self.game.known_enemy_units.not_flying.exclude_type([ADEPTPHASESHIFT]).exists:
 			nexus = self.game.units(NEXUS).random
