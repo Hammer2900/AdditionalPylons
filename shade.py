@@ -140,6 +140,8 @@ class Shade:
 
 
 	def ownerOrders(self):
+		if not self.owner:
+			return False
 		owner_pos = self.game.unitList.unitPosition(self.owner)
 		if self.ownerOrder == 'GoDefensivePoint':
 			if self.checkNewAction('move', self.game.defensive_pos.position[0], self.game.defensive_pos.position[1]):
