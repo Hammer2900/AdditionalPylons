@@ -35,6 +35,7 @@ Speed: 3.94
 Cargo Size: 1
 '''
 _debug = False
+_rushmode = True
 
 class Probe:
 	
@@ -761,6 +762,12 @@ class Probe:
 				if self.checkNewAction('move', closestEnemy.position[0], closestEnemy.position[1]):
 					self.game.combinedActions.append(self.unit.attack(closestEnemy.position))
 				return True
+		elif _rushmode:
+			startPos = random.choice(self.game.enemy_start_locations)
+			if self.checkNewAction('move', startPos[0], startPos[1]):
+				self.game.combinedActions.append(self.unit.move(startPos))
+			self.last_target = Point3((startPos.position.x, startPos.position.y, self.game.getHeight(startPos.position)))
+			self.label = 'Searching for Enemy Base'			
 
 	def moveToEnemiesOld(self):
 		#move to the enemy that is closest to the nexus.

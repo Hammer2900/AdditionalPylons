@@ -248,6 +248,9 @@ class MyBot(sc2.BotAI, effects_obj):
 
 	async def on_building_construction_complete(self, unit):
 		self.buildingList.load_object(unit)
+		if unit.name == 'PhotonCannon':
+			self.unitList.load_object(unit)
+
 
 	async def on_building_construction_started(self, unit):
 		if unit.name == 'Nexus':
@@ -1145,7 +1148,7 @@ class MyBot(sc2.BotAI, effects_obj):
 				return enemycenter
 
 	def findBestTarget(self, unit_obj, bonus_range=0):
-		#first thing is to get all the targets in our units range.
+		#first thing is to get all the targets in our units range.		
 		enemyThreats = unit_obj.closestEnemies.in_attack_range_of(unit_obj.unit, bonus_distance=bonus_range)
 		if unit_obj.unit.name == 'Phoenix':
 		 	enemyThreats += unit_obj.closestEnemies.of_type([COLOSSUS]).closer_than((7 + bonus_range), unit_obj.unit)
@@ -1812,7 +1815,7 @@ class MyBot(sc2.BotAI, effects_obj):
 					self.opp_id = 5
 			#load up the pickle info and the opp info.
 
-			#self.opp_id = "{}-{}".format(self.enemy_race, self.opp_id)
+			self.opp_id = "{}-{}".format(self.enemy_race, self.opp_id)
 
 			if _local_ladder:
 				print ('playing vs', self.opp_id)

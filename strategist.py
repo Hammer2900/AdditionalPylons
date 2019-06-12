@@ -1156,6 +1156,7 @@ class Strategist:
 				#if not self.game.rush_detected and self.game.known_enemy_units.exclude_type(PROBE).not_flying.closer_than(20, nexus).amount > 5:
 				if not self.game.rush_detected and self.game.known_enemy_units.not_flying.closer_than(20, nexus).amount > 2:
 					detected = True
+		detected = True
 		if detected:
 			self.game.rush_detected = True
 			#drop opening strats, just go into auto mode.
