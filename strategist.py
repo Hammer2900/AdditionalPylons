@@ -1156,7 +1156,7 @@ class Strategist:
 				#if not self.game.rush_detected and self.game.known_enemy_units.exclude_type(PROBE).not_flying.closer_than(20, nexus).amount > 5:
 				if not self.game.rush_detected and self.game.known_enemy_units.not_flying.closer_than(20, nexus).amount > 2:
 					detected = True
-		detected = True
+		#detected = True
 		if detected:
 			self.game.rush_detected = True
 			#drop opening strats, just go into auto mode.
@@ -1220,9 +1220,9 @@ class Strategist:
 				#obj = self.game._pb_objects.get(worker.tag)
 				if ct == 0:
 					obj.scout = True
-				if ct > 0 and ct < 3:
+				if ct > 0 and ct < 2:
 					obj.collect_only = True
-				if ct >= 3:
+				if ct >= 2:
 					break
 				ct += 1
 			self.worker_tag = True
