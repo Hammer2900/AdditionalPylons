@@ -146,6 +146,7 @@ class UnitCounter:
 				[['Zealot', 0.01]],
 			],					
 			'Overlord': [
+				[['Colossus', 0.05], ['Stalker', 0.25], ['Adept', 0.25], ['Immortal', 0.1]],
 				[['Stalker', 0.01]]
 				],
 			'OverlordTransport': [
