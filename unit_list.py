@@ -22,6 +22,7 @@ from disruptor_phased import DisruptorPhased as dpControl
 from carrier import Carrier as crControl
 from mothership import Mothership as msControl
 from archon import Archon as arControl
+from cannon import Cannon as cnControl
 
 
 class UnitList():
@@ -121,6 +122,9 @@ class UnitList():
 			self.unit_objects.update({unit.tag:obj})
 		elif unit.name == 'Archon':
 			obj = arControl(unit)
+			self.unit_objects.update({unit.tag:obj})
+		elif unit.name == 'PhotonCannon':
+			obj = cnControl(unit)
 			self.unit_objects.update({unit.tag:obj})			
 		# else:
 		# 	print ('Unit Created:', unit.name, unit.tag)
