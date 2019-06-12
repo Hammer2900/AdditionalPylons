@@ -35,7 +35,7 @@ Speed: 3.94
 Cargo Size: 1
 '''
 _debug = False
-_rushmode = True
+_rushmode = False
 
 class Probe:
 	
