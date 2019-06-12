@@ -157,7 +157,8 @@ class UnitCounter:
 				],
 			'Zergling': [			
 #				[['HighTemplar', 0.25], ['Zealot', 0.25], ['Adept', 0.25]],
-				[['Colossus', 0.05], ['Zealot', 0.25], ['Adept', 0.25]],
+				[['Colossus', 0.05], ['Zealot', 0.25], ['Adept', 0.25], ['Immortal', 0.1]],
+				[['Zealot', 0.25], ['Adept', 0.25], ['Immortal', 0.2]],
 				[['Adept', 0.25], ['Zealot', 0.25]],				
 				[['Zealot', 0.5]],
 				],
