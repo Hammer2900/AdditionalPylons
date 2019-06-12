@@ -35,7 +35,7 @@ Speed: 3.94
 Cargo Size: 1
 '''
 _debug = False
-_rushmode = False
+_rushmode = True
 
 class Probe:
 	
@@ -88,7 +88,7 @@ class Probe:
 		self.target_vespene = self.game._strat_manager.target_vespene
 		#print ('t', self.assigned)
 
-		if (self.game.rush_detected or self.game.workerAllin) and not self.collect_only and self.unit.shield > 15:
+		if (_rushmode or self.game.rush_detected or self.game.workerAllin) and not self.collect_only and self.unit.shield > 15:
 			self.rush_defender = True
 			self.lite_defender = False			
 			self.removeGatherer()
@@ -693,7 +693,7 @@ class Probe:
 			
 		if not self.shield_regen and total_health <= 10:
 			self.shield_regen = True
-		else:
+		elif not self.sheild_regen:
 			self.shield_regen = False
 		
 		#if our shield is at 0, then find the nearest mineral to start location and go to it.
