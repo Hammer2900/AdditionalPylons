@@ -41,6 +41,7 @@ class Probe:
 	def __init__(self, unit):
 		self.unit = unit
 		self.tag = unit.tag
+		self.game = None
 		self.retreating = False
 		self.saved_position = None
 		self.last_action = ''
@@ -688,7 +689,8 @@ class Probe:
 			self.shield_regen = False
 		elif self.shield_regen and total_health < 23:
 			self.shield_regen = True
-		elif not self.shield_regen and total_health <= 10:
+			
+		if not self.shield_regen and total_health <= 10:
 			self.shield_regen = True
 		else:
 			self.shield_regen = False
