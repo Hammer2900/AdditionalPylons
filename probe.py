@@ -693,7 +693,7 @@ class Probe:
 			
 		if not self.shield_regen and total_health <= 10:
 			self.shield_regen = True
-		elif not self.sheild_regen:
+		elif not self.shield_regen:
 			self.shield_regen = False
 		
 		#if our shield is at 0, then find the nearest mineral to start location and go to it.
