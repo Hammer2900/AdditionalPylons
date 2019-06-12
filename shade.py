@@ -171,7 +171,7 @@ class Shade:
 					if self.checkNewAction('move', target_pos.position[0], target_pos.position[1]):
 						self.game.combinedActions.append(self.unit.move(target_pos))
 					return True
-		elif self.ownerOrder == 'Battle' and len(self.closestEnemies) > 0:
+		elif self.ownerOrder in {'Battle', 'Surrounded'} and len(self.closestEnemies) > 0:
 			#find the center of the enemies around the nearest.
 			#targets = self.closestEnemies.filter(lambda x: x.can_attack_ground and x.distance_to(self.owner) < 9)
 			targets = self.closestEnemies.filter(lambda x: x.can_attack_ground)

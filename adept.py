@@ -239,6 +239,9 @@ class Adept:
 		#if we are being told to come home, then shade should head towards the defensive point.
 		elif self.comeHome:
 			self.shadeOrder = 'ComeHome'
+		#if we are in battle, have shade go behind us like a blink.
+		elif len(self.closestEnemies) > 0:
+			self.shadeOrder = 'Battle'
 		#if we are near an enemy base, try to get near workers to kill them.
 		elif self.workerSearch():
 			self.shadeOrder = 'WorkerSearch'
@@ -248,9 +251,7 @@ class Adept:
 		#if we are in battle, shade should go behind the lines and try to pick off soft targets like infestors.
 		elif len(self.closestEnemies) > 0 and self.findPriorityTargets():
 			self.shadeOrder = 'PriorityTarget'
-		#if we are in battle, have shade go behind us like a blink.
-		elif len(self.closestEnemies) > 0:
-			self.shadeOrder = 'Battle'
+			
 		elif self.game.moveRally and not self.game.under_attack and self.unit.distance_to(self.game.rally_pos) > 3:
 			self.shadeOrder = 'MoveRally'
 		#if we are scouting, have the shade go into the base and search around.
