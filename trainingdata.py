@@ -1,6 +1,7 @@
 import pickle
 import random
 from operator import itemgetter
+from sc2 import Race
 
 '''
 Saves the result and data to find better strats that work.
@@ -152,7 +153,16 @@ class TrainingData:
 	
 	def getOppHistory(self, opp_id, race):
 		#opp_id = "{}-{}".format(race, str(opp_id))
-		return self.opp_units.get(opp_id)
+		if self.opp_units.get(opp_id):
+			return self.opp_units.get(opp_id)
+		else:
+			if race == Race.Zerg:
+				return ['Overlord', 'Zergling', 'Queen', 'Roach', 'Hydralisk']
+			elif race == Race.Protoss:
+				return ['Stalker', 'Zealot', 'Immortal']
+			elif race == Race.Terran:			
+				return ['Marine', 'Medivac', 'WidowMine', 'Marauder', 'Viking', 'SiegeTank', 'VikingFighter', 'VikingAssault']
+		return []
 	
 	def saveUnitResult(self, opp_id, units, race):
 		#opp_id = "{}-{}".format(race, str(opp_id))

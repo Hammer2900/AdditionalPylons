@@ -1664,9 +1664,8 @@ class Strategist:
 		
 		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
 			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
-
-
 		print (self.start_build_order)
+		return self.start_build_order
 		
 	def calc_counters(self):
 		counters = {}

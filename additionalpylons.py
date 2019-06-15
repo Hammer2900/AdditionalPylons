@@ -105,6 +105,7 @@ class MyBot(sc2.BotAI, effects_obj):
 		self.gg_said = False
 		self.alive_said = False
 		self.intro_value = None
+		self.intro_buildings = None
 		self.intro_said = False
 		self.opp_unit_history = None
 		self.last_iter = -1
@@ -164,7 +165,9 @@ class MyBot(sc2.BotAI, effects_obj):
 			else:
 				intro_des = self._strat_manager.unitCounter.getIntroDescription(self._strat_manager.strat_id)
 				full = "I'm starting with {}.  It's been chosen by opponent race".format(intro_des)
-				await self._client.chat_send(full, team_only=False)				
+				await self._client.chat_send(full, team_only=False)
+			if self.intro_buildings:
+				await self._client.chat_send(self.intro_buildings, team_only=False)
 			self.intro_said = True
 
 		#first step stuff
@@ -1799,18 +1802,22 @@ class MyBot(sc2.BotAI, effects_obj):
 			#select starting strat by race.
 			if self.enemy_race == Race.Zerg:
 				self._strat_manager.strat_id = _zerg_race_strat_id
-				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
+#				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			elif self.enemy_race == Race.Protoss:
 				self._strat_manager.strat_id = _protoss_race_strat_id
-				self._strat_manager.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', 'RoboticsFacility']
+#				self._strat_manager.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', 'RoboticsFacility']
 			elif self.enemy_race == Race.Terran:
 				self._strat_manager.strat_id = _terran_race_strat_id
-				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
+#				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			else:
 				self._strat_manager.strat_id = 1
-				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
+#				self._strat_manager.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']
 			print ('using race strat:', self._strat_manager.strat_id)
 			self.intro_value = "(glhf) {version}:{strat_id}".format(version=_version, strat_id=self._strat_manager.strat_id)
+			self.opp_unit_history = self._training_data.getOppHistory('0', self.enemy_race)
+			if self.opp_unit_history:
+				self.start_unit_ratio = self._strat_manager.calc_starter_counters(self.opp_unit_history)
+				self.intro_buildings = "First four buildings: {b1}, {b2}, {b3}, {b4}".format(b1=self.start_unit_ratio[0], b2=self.start_unit_ratio[1], b3=self.start_unit_ratio[2], b4=self.start_unit_ratio[3])
 
 
 		else:
@@ -1853,12 +1860,11 @@ class MyBot(sc2.BotAI, effects_obj):
 			#print (self.intro_value)
 
 			#load up the units the opp used the last time.
-			self.opp_unit_history = None
-			if self._strat_manager.strat_id != 1:
-				self.opp_unit_history = self._training_data.getOppHistory(self.opp_id, self.enemy_race)
+			self.opp_unit_history = self._training_data.getOppHistory(self.opp_id, self.enemy_race)
 
 			if self.opp_unit_history:
 				self.start_unit_ratio = self._strat_manager.calc_starter_counters(self.opp_unit_history)
+				self.intro_buildings = "First four buildings: {b1}, {b2}, {b3}, {b4}".format(b1=self.start_unit_ratio[0], b2=self.start_unit_ratio[1], b3=self.start_unit_ratio[2], b4=self.start_unit_ratio[3])
 
 
 	async def check_enemy_structures(self):
