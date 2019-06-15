@@ -118,6 +118,8 @@ class MyBot(sc2.BotAI, effects_obj):
 		self.air_dodge_positions = []
 		self.obs_dodge_positions = []
 		self.savingData = _use_data
+		self.shadeCast = False
+		self.lastShadeCast = 0
 
 	async def on_step(self, iteration):
 		#realtime=True fix
@@ -130,7 +132,6 @@ class MyBot(sc2.BotAI, effects_obj):
 		self.unit_engaged = False
 		#reset training save
 		self._build_manager.last_build = None
-
 		self.combinedActions = []
 		#cache enemies for future calls.
 		self.cache_enemies()
@@ -141,8 +142,10 @@ class MyBot(sc2.BotAI, effects_obj):
 		#put all effect positions to be dodged into a list.
 		self.addEffects()
 
-
 		self.allAbilities = await self.getAllAbilities()
+
+		#check if this is a frame shades can be cast on.
+		self.shadeCasting()
 
 
 		if self.time > self._next_endgame_check:
@@ -1684,6 +1687,17 @@ class MyBot(sc2.BotAI, effects_obj):
 				#	self._client.debug_line_out(self.unitDebugPos(unit), self.p3AddZ(enemyThreatsCenter), (244, 217, 66))
 				#	self._client.debug_line_out(self.unitDebugPos(unit), self.p2AddZ(retreatPoint), (176, 66, 244))
 				return retreatPoint
+
+###########
+#Utilities#
+###########
+	def shadeCasting(self):
+		if self.time > (self.lastShadeCast + 11.4):
+			self.shadeCast = True
+			self.lastShadeCast = self.time
+		else:
+			self.shadeCast = False
+		
 
 ################################
 #map val kite/retreat functions#

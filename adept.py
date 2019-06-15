@@ -200,25 +200,11 @@ class Adept:
 
 	def psionicTransfer(self):
 		#see if we need to cast a shade at the enemy.
-		if AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT in self.abilities and self.game.can_afford(ADEPTPHASESHIFT_ADEPTPHASESHIFT):
+		if self.game.shadeCast and AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT in self.abilities and self.game.can_afford(ADEPTPHASESHIFT_ADEPTPHASESHIFT):
 			self.game.combinedActions.append(self.unit(AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT, self.unit.position))
 			return True
 		return False
 	
-	def psionicTransferReal(self):
-		#see if we need to cast a shade at the enemy.
-		if not self.game.units(ADEPTPHASESHIFT).closer_than(6, self.unit):
-			#targetEnemy = self.game.findGroundTarget(self.unit, can_target_air=False, max_enemy_distance=self.shade_range)
-			targetEnemy = self.closestEnemies.closer_than(6, self.unit)
-			if targetEnemy:
-				closestEnemy = targetEnemy.closest_to(self.unit)
-				#scoutPoint = self.game.findRetreatTarget(closestEnemy, self.unit, False, inc_size=6)
-				#if scoutPoint:
-				if AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT in self.abilities and self.game.can_afford(ADEPTPHASESHIFT_ADEPTPHASESHIFT):
-					self.game.combinedActions.append(self.unit(AbilityId.ADEPTPHASESHIFT_ADEPTPHASESHIFT, closestEnemy.position))
-					return True
-		return False
-
 
 	def workerSearch(self) -> bool:
 		if self.game.defend_only or self.game.under_attack:
