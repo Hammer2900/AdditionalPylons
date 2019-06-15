@@ -685,16 +685,13 @@ class Probe:
 	def stopFighting(self):
 		#if our shield + health is less than 10, retreat.
 		#stay retreated until our shield is regen to 15, so 23 total.
-		total_health = self.unit.shield + self.unit.health		
-		if self.shield_regen and total_health >= 23:
-			self.shield_regen = False
-		elif self.shield_regen and total_health < 23:
-			self.shield_regen = True
-			
-		if not self.shield_regen and total_health <= 10:
-			self.shield_regen = True
-		elif not self.shield_regen:
-			self.shield_regen = False
+		total_health = self.unit.shield + self.unit.health
+		if self.shield_regen:
+			if total_health >= 23:
+				self.shield_regen = False
+		else:
+			if total_health <= 10:
+				self.shield_regen = True
 		
 		#if our shield is at 0, then find the nearest mineral to start location and go to it.
 		if self.shield_regen and self.closestEnemies:		
