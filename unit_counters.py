@@ -156,17 +156,12 @@ class UnitCounter:
 				[['Stalker', 0.5]],
 				[['Stalker', 1]],
 				],
-			'Zergling': [			
-#				[['HighTemplar', 0.25], ['Zealot', 0.25], ['Adept', 0.25]],
-				[['Colossus', 0.05], ['Zealot', 0.25], ['Adept', 0.25], ['Immortal', 0.1]],
-				[['Zealot', 0.25], ['Adept', 0.25], ['Immortal', 0.2]],
-				[['Adept', 0.25], ['Zealot', 0.25]],				
+			'Zergling': [
+				[['Colossus', 0.05], ['Zealot', 0.5]],
 				[['Zealot', 0.5]],
 				],
 			'ZerglingBurrowed': [			
-#				[['HighTemplar', 0.25], ['Zealot', 0.25], ['Adept', 0.25]],
-				[['Colossus', 0.05], ['Zealot', 0.25], ['Adept', 0.25]],
-				[['Adept', 0.25], ['Zealot', 0.25]],				
+				[['Colossus', 0.05], ['Zealot', 0.5]],
 				[['Zealot', 0.5]],
 				],
 			'Hydralisk': [
@@ -202,8 +197,8 @@ class UnitCounter:
 				[['Zealot', 2]],
 				],
 			'Infestor': [
-				[['Disruptor', 0.2]],
-				[['Stalker', 1],['Zealot', 0.5]],
+				[['Disruptor', 0.2],['Adept', 2]],
+				[['Adept', 2]],
 				],
 			'Queen': [
 				[['Stalker', 1]],
@@ -243,7 +238,7 @@ class UnitCounter:
 				[['Zealot', 1]],
 				],
 			'Stalker': [
-				[['Immortal', 0.5], ['Stalker', 0.25], ['Sentry', 0.05]],
+				[['Immortal', 0.25], ['Stalker', 1], ['Sentry', 0.05]],
 				[['Stalker', 1]],
 				[['Zealot', 2]],
 				],
