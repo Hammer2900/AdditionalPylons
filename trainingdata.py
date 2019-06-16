@@ -173,6 +173,7 @@ class TrainingData:
 			return self.opp_units.get(opp_id)
 		else:
 			if race == Race.Zerg:
+				#return ['Overlord', 'Zergling']
 				return ['Overlord', 'Zergling', 'Queen', 'Roach', 'Hydralisk']
 			elif race == Race.Protoss:
 				return ['Stalker', 'Zealot', 'Immortal']

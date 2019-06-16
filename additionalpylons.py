@@ -760,45 +760,6 @@ class MyBot(sc2.BotAI, effects_obj):
 				return True
 		return False
 
-
-	def moveToFriendliesOld(self, unit_obj):
-		#if we are moving and no enemies exist, then we must be search, so return false.
-		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:
-			return False
-
-		closestFriendly = None
-		fUnits = self.units().not_structure.exclude_type([WARPPRISM,OBSERVER,PROBE]).filter(lambda x: x.can_attack_ground or x.can_attack_air)
-		if unit_obj.unit.can_attack_ground and not unit_obj.unit.can_attack_air:
-			#can only attack ground, so go to enemies that are near ground units.
-			if self.cached_enemies.not_flying.exists and fUnits:
-				closestFriendly = fUnits.closest_to(self.cached_enemies.not_flying.closest_to(unit_obj.unit))
-			elif fUnits:
-				closestFriendly = fUnits.closest_to(unit_obj.unit)
-
-		elif unit_obj.unit.can_attack_air and not unit_obj.unit.can_attack_ground:
-			# can only attack air units.
-			if self.cached_enemies.flying.exists and fUnits:
-				closestFriendly = fUnits.closest_to(self.cached_enemies.flying.closest_to(unit_obj.unit))
-			elif fUnits:
-				closestFriendly = fUnits.closest_to(unit_obj.unit)
-		else:
-			#can attack anything.
-			if self.cached_enemies.exists and fUnits:
-				closestFriendly = fUnits.closest_to(self.cached_enemies.closest_to(unit_obj.unit))
-			elif fUnits:
-				closestFriendly = fUnits.closest_to(unit_obj.unit)
-
-		if closestFriendly:
-			#if we are not close to it, then our priority is to get there.
-			if unit_obj.unit.distance_to(closestFriendly) > 10:
-				if unit_obj.checkNewAction('move', closestFriendly.position.x, closestFriendly.position.y):
-					self.combinedActions.append(unit_obj.unit.move(closestFriendly))
-				if unit_obj.unit.is_selected or _debug_combat:
-					unit_obj.last_target = Point3((closestFriendly.position3d.x, closestFriendly.position3d.y, (closestFriendly.position3d.z + 1)))
-				return True
-		return False
-
-
 	def moveToFriendliesNearWarpprism(self, unit_obj):
 		#if we are moving and no enemies exist, then we must be search, so return false.
 		if unit_obj.unit.is_moving and len(self.cached_enemies) == 0:

@@ -89,7 +89,7 @@ class Robo:
 	
 	def bestTrain(self):
 		#if it's been at least 7 minutes in the game, make a warpprism if one doesn't exist.
-		if self.game.trueGates >= 3 and len(self.game.units.of_type([WARPPRISMPHASING,WARPPRISM])) == 0 and not self.game.already_pending(WARPPRISM):
+		if not self.game.defend_only and self.game.trueGates >= 3 and len(self.game.units.of_type([WARPPRISMPHASING,WARPPRISM])) == 0 and not self.game.already_pending(WARPPRISM):
 			return 'WarpPrism'
 		
 		bestName = None

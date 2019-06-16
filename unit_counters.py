@@ -25,6 +25,26 @@ class UnitCounter:
 			'Observer': 1,
 			'Mothership': 8
 		}
+
+		self.unitDemandCost = {
+			'Zealot': 1,
+			'Stalker': 2,
+			'Adept': 2,
+			'Sentry': 2,
+			'Immortal': 4,
+			'WarpPrism': 2,
+			'VoidRay': 4,
+			'Phoenix': 4,
+			'Colossus': 10,
+			'Tempest': 8,
+			'Carrier': 10,
+			'HighTemplar': 8,
+			'Disruptor': 8, 
+			'DarkTemplar': 8,
+			'Observer': 2,
+			'Mothership': 8
+		}
+
 		
 		#current power based on = Min costs + (Gas Costs * 2)
 		self.unitPower = {
@@ -157,7 +177,7 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Zergling': [
-				[['Colossus', 0.05], ['Zealot', 0.5]],
+				[['Colossus', 0.1], ['Zealot', 0.5]],
 				[['Zealot', 0.5]],
 				],
 			'ZerglingBurrowed': [			
@@ -612,7 +632,10 @@ class UnitCounter:
 
 	def getUnitCost(self, unit):
 		return self.unitCosts.get(unit)
-			
+	
+	def getUnitDemandCost(self, unit):
+		return self.unitDemandCost.get(unit)
+		
 	def getUnitPower(self, unit):
 		return self.unitPower.get(unit)
 

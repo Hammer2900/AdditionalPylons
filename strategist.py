@@ -1525,7 +1525,7 @@ class Strategist:
 			listnum += 1
 		return [best_list, canbuild]
 		
-	def calc_starter_counters(self, inc_units):
+	def calc_starter_counters_old(self, inc_units):
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1538,6 +1538,7 @@ class Strategist:
 			for countList in best_list:
 				#add the counter to the existing for a total needed of unit.
 				needed = countList[1]
+				print (countList[0], countList[1])
 				if not counters.get(countList[0]):
 					counters.update({countList[0]:needed})
 				else:
@@ -1548,8 +1549,9 @@ class Strategist:
 		#print (counters)
 		buildings_needed = {}
 		demand_dict = {}
+		print ('counting')
 		for name, count in self.starting_army.items():
-			#print (name, count)
+			print (name, count)
 			#find the building that makes this unit and add into the demand.
 			building = self.unitCounter.getUnitTrainer(name)
 			unitValue = self.unitCounter.getUnitCost(name) * count
@@ -1561,8 +1563,9 @@ class Strategist:
 		#get the building we need the most.
 		most_requested = 'Gateway'
 		most_requested_count = 0
+		print ('Finding Demand')
 		for building, count in demand_dict.items():
-			#print (building, count)
+			print (building, count)
 			if count > most_requested_count:
 				most_requested_count = count
 				most_requested = building
@@ -1588,7 +1591,7 @@ class Strategist:
 		print (self.start_build_order)
 		return self.start_build_order
 
-	def calc_starter_counters_new(self, inc_units):
+	def calc_starter_counters(self, inc_units):
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1612,10 +1615,10 @@ class Strategist:
 		buildings_needed = {}
 		demand_dict = {}
 		for name, count in self.starting_army.items():
-			#print (name, count)
 			#find the building that makes this unit and add into the demand.
 			building = self.unitCounter.getUnitTrainer(name)
-			unitValue = self.unitCounter.getUnitCost(name) * count
+			unitValue = self.unitCounter.getUnitDemandCost(name) * count
+			print (name, count, unitValue)			
 			if not demand_dict.get(building):
 				demand_dict.update({building:unitValue})
 			else:
@@ -1625,8 +1628,9 @@ class Strategist:
 		most_requested = 'Gateway'
 		most_requested_count = 0
 		requestedList = []
+		print ('finding demand')
 		for building, count in demand_dict.items():
-			#print (building, count)
+			print (building, count)
 			if count > 0:
 				requestedList.append(building)
 			if count > most_requested_count:
@@ -1646,14 +1650,20 @@ class Strategist:
 				if not self.starting_army.get('Immortal'):
 					most_requested2 = 'RoboticsBay'
 				else:
-					most_requested = 'Gateway'
-					most_requested2 = 'RoboticsFacility'
+					if 'Stargate' in requestedList:
+						most_requested2 = 'Stargate'
+					else:
+						most_requested2 = 'RoboticsFacility'
+						
 			elif most_requested == 'Stargate':
 				if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
 					most_requested2 = 'FleetBeacon'
 				else:
-					most_requested = 'Gateway'
-					most_requested2 = 'Stargate'
+					if 'RoboticsFacility' in requestedList:
+						most_requested2 = 'RoboticsFacility'
+					else:
+						most_requested2 = 'Stargate'
+						
 			elif most_requested == 'Gateway':
 				if 'RoboticsFacility' in requestedList:
 					most_requested2 = 'RoboticsFacility'
