@@ -1618,7 +1618,7 @@ class Strategist:
 			#find the building that makes this unit and add into the demand.
 			building = self.unitCounter.getUnitTrainer(name)
 			unitValue = self.unitCounter.getUnitDemandCost(name) * count
-			print (name, count, unitValue)			
+			#print (name, count, unitValue)			
 			if not demand_dict.get(building):
 				demand_dict.update({building:unitValue})
 			else:
@@ -1628,9 +1628,9 @@ class Strategist:
 		most_requested = 'Gateway'
 		most_requested_count = 0
 		requestedList = []
-		print ('finding demand')
+		#print ('finding demand')
 		for building, count in demand_dict.items():
-			print (building, count)
+			#print (building, count)
 			if count > 0:
 				requestedList.append(building)
 			if count > most_requested_count:
