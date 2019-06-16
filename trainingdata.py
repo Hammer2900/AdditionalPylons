@@ -2,6 +2,7 @@ import pickle
 import random
 from operator import itemgetter
 from sc2 import Race
+import configparser
 
 '''
 Saves the result and data to find better strats that work.
@@ -9,6 +10,16 @@ Saves the result and data to find better strats that work.
 {opp_id: [[match_id, strat_id, result, race],]}
 
 '''
+
+
+
+#load up configuration from the config file.
+_ini_parse = configparser.ConfigParser()
+_ini_parse.read('config.ini')
+_zerg_race_strat_id = int(_ini_parse['Strategy']['zerg_race_strat_id'])
+_protoss_race_strat_id = int(_ini_parse['Strategy']['protoss_race_strat_id'])
+_terran_race_strat_id = int(_ini_parse['Strategy']['terran_race_strat_id'])
+
 
 class TrainingData:
 	
@@ -30,8 +41,13 @@ class TrainingData:
 		#check if this is a new opponent.
 		#opp_id = "{}-{}".format(race, str(opp_id))
 		if not self.data_dict.get(opp_id):
-			#start with strat_id 1.
 			self.first_game = True
+			if race == Race.Zerg:
+				return _zerg_race_strat_id
+			elif race == Race.Protoss:
+				return _protoss_race_strat_id
+			elif race == Race.Terran:			
+				return _terran_race_strat_id	
 			return 1
 		opp_data = self.data_dict.get(opp_id)
 		#print (str(opp_data))

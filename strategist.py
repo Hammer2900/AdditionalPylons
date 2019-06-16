@@ -1525,7 +1525,7 @@ class Strategist:
 			listnum += 1
 		return [best_list, canbuild]
 		
-	def calc_starter_counters_old(self, inc_units):
+	def calc_starter_counters(self, inc_units):
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1586,8 +1586,9 @@ class Strategist:
 
 
 		print (self.start_build_order)
+		return self.start_build_order
 
-	def calc_starter_counters(self, inc_units):
+	def calc_starter_counters_new(self, inc_units):
 		counters = {}
 		#loop units and get the counters.
 		for name in inc_units:
@@ -1845,7 +1846,7 @@ class Strategist:
 		#add in any ghost units needed.
 		for name, count in self.ghost_units.items():
 			if not counted_enemy.get(name):
-				counted_enemy.update({name:0})
+				counted_enemy.update({name:1})
 		self.counted_enemy = counted_enemy
 		#print (self.counted_enemy)
 
