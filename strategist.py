@@ -1524,72 +1524,6 @@ class Strategist:
 				break
 			listnum += 1
 		return [best_list, canbuild]
-		
-	def calc_starter_counters_old(self, inc_units):
-		counters = {}
-		#loop units and get the counters.
-		for name in inc_units:
-			self.ghost_units.update({name:0})
-			counterList = self.unitCounter.getCounterUnits(name)
-			#multiple the enemy count by the counter suggested.
-			if not counterList:
-				print ('counterlist missing', name)
-			[best_list, canbuild] = self.parse_counterlist(counterList)	
-			for countList in best_list:
-				#add the counter to the existing for a total needed of unit.
-				needed = countList[1]
-				print (countList[0], countList[1])
-				if not counters.get(countList[0]):
-					counters.update({countList[0]:needed})
-				else:
-					val = counters.get(countList[0]) + needed
-					counters.update({countList[0]:val})
-		self.starting_army = counters
-		#now calculate the buildings we need.
-		#print (counters)
-		buildings_needed = {}
-		demand_dict = {}
-		print ('counting')
-		for name, count in self.starting_army.items():
-			print (name, count)
-			#find the building that makes this unit and add into the demand.
-			building = self.unitCounter.getUnitTrainer(name)
-			unitValue = self.unitCounter.getUnitCost(name) * count
-			if not demand_dict.get(building):
-				demand_dict.update({building:unitValue})
-			else:
-				val = demand_dict.get(building) + unitValue
-				demand_dict.update({building:val})
-		#get the building we need the most.
-		most_requested = 'Gateway'
-		most_requested_count = 0
-		print ('Finding Demand')
-		for building, count in demand_dict.items():
-			print (building, count)
-			if count > most_requested_count:
-				most_requested_count = count
-				most_requested = building
-		
-		most_requested2 = most_requested
-		if most_requested == 'RoboticsFacility' and not self.starting_army.get('Immortal'):
-			most_requested2 = 'RoboticsBay'
-		
-		if most_requested == 'Stargate':
-			if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
-				most_requested2 = 'FleetBeacon'
-		
-		if most_requested == 'Gateway':
-			most_requested2 = 'TwilightCouncil'
-
-		self.start_build_order = ['Gateway', 'CyberneticsCore', most_requested, most_requested2]
-#		self.start_build_order = ['Gateway', 'CyberneticsCore', 'Gateway', 'RoboticsFacility']		
-		
-		if self.game.enemy_race == Race.Protoss and most_requested == 'Gateway':
-			self.start_build_order = ['Gateway', 'Gateway', 'CyberneticsCore', most_requested2]
-
-
-		print (self.start_build_order)
-		return self.start_build_order
 
 	def calc_starter_counters(self, inc_units):
 		counters = {}
@@ -1647,7 +1581,8 @@ class Strategist:
 				most_requested2 = 'RoboticsFacility'
 		else:
 			if most_requested == 'RoboticsFacility':
-				if not self.starting_army.get('Immortal'):
+				#if not self.starting_army.get('Immortal'):
+				if self.starting_army.get('Colossus'):
 					most_requested2 = 'RoboticsBay'
 				else:
 					if 'Stargate' in requestedList:
@@ -1656,7 +1591,8 @@ class Strategist:
 						most_requested2 = 'RoboticsFacility'
 						
 			elif most_requested == 'Stargate':
-				if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
+				#if not self.starting_army.get('VoidRay') and not self.starting_army.get('Phoenix'):
+				if self.starting_army.get('Tempest'):
 					most_requested2 = 'FleetBeacon'
 				else:
 					if 'RoboticsFacility' in requestedList:

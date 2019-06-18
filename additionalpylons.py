@@ -30,7 +30,7 @@ from protoss_agent import ProtossAgent as protossAgent
 from effects import Effects as effects_obj
 
 
-_version = 'v1.615'
+_version = 'v1.617'
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 
