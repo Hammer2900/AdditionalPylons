@@ -1603,6 +1603,8 @@ class Strategist:
 			elif most_requested == 'Gateway':
 				if 'RoboticsFacility' in requestedList:
 					most_requested2 = 'RoboticsFacility'
+				elif 'Stargate' in requestedList:
+					most_requested2 = 'Stargate'
 				elif 'TemplarArchive' in requestedList:
 					most_requested2 = 'TemplarArchive'
 				else:
