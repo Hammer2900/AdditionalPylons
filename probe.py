@@ -699,7 +699,7 @@ class Probe:
 			mining_target = self.findRushDefMinerals()
 			#get the distance of the nearest enemy and the distance to the mining target.  If it's less than 2, then keep fighting.
 			closestEnemy = self.closestEnemies.closest_to(self.unit)
-			if closestEnemy:
+			if closestEnemy and mining_target:
 				away_dist = closestEnemy.distance_to(mining_target)
 				if away_dist > 2:
 					self.game.combinedActions.append(self.unit.gather(mining_target, queue=False))
