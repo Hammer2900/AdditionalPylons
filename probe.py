@@ -286,7 +286,7 @@ class Probe:
 
 		#move to the enemy that is closest to the nexus.
 		#5 move the closest known enemy.
-		if self.moveToEnemies():
+		if self.game.moveToEnemies(self):
 			self.label = 'Def Moving Enemy2'
 			return #moving to next target.
 		
