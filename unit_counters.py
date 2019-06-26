@@ -178,7 +178,7 @@ class UnitCounter:
 				],
 			'Zergling': [
 				[['Colossus', 0.1], ['Adept', 0.5], ['Zealot', 0.25]],
-				[['Adept', 0.5], ['Zealot', 0.25]]
+				[['Adept', 0.5], ['Zealot', 0.25]],
 				[['Zealot', 0.5]],
 				],
 			'ZerglingBurrowed': [			
@@ -281,8 +281,8 @@ class UnitCounter:
 				[['Stalker', 0.75]],
 				],
 			'VoidRay': [
-				[['VoidRay', 1]],
-				[['Stalker', 2], ['Sentry', 0.1]],
+				[['VoidRay', 0.75], ['Phoenix', 0.75]],
+				[['Stalker', 2]],
 				],
 			'Oracle': [
 				[['Phoenix', 1]],
