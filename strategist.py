@@ -1149,7 +1149,6 @@ class Strategist:
 		
 
 	def detect_rush(self):
-		#print (self.game.units().not_structure.exclude_type(PROBE).amount, self.game.known_enemy_units.exists)
 		detected = False
 		if self.game.units.not_structure.exclude_type(PROBE).amount < 3 and self.game.units(PHOTONCANNON).ready.amount < 3 and self.game.units.structure.amount < 5:
 			for nexus in self.game.units(NEXUS):

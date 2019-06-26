@@ -30,7 +30,7 @@ from protoss_agent import ProtossAgent as protossAgent
 from effects import Effects as effects_obj
 
 
-_version = 'v1.617'
+_version = 'v1.625'
 _collect_data = False  #collect data against protoss enemies if true.
 _trainfile = "data/protoss-training"
 
@@ -1056,7 +1056,6 @@ class MyBot(sc2.BotAI, effects_obj):
 			if len(allPylons) == 1:
 				#single pylon building, add to the pylon score.
 				if building.name == 'ShieldBattery':
-					print ('shield found')
 					score += 100
 				elif building.name == 'PhotonCannon':
 					score += 25

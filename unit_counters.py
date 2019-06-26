@@ -177,11 +177,12 @@ class UnitCounter:
 				[['Stalker', 1]],
 				],
 			'Zergling': [
-				[['Colossus', 0.1], ['Zealot', 0.5]],
+				[['Colossus', 0.1], ['Adept', 0.5], ['Zealot', 0.25]],
+				[['Adept', 0.5], ['Zealot', 0.25]]
 				[['Zealot', 0.5]],
 				],
 			'ZerglingBurrowed': [			
-				[['Colossus', 0.05], ['Zealot', 0.5]],
+				[['Colossus', 0.05], ['Zealot', 0.25]],
 				[['Zealot', 0.5]],
 				],
 			'Hydralisk': [
